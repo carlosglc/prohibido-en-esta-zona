@@ -2,6 +2,6 @@
   "name": "tiny-silence-45b3",
   "compatibility_date": "2026-08-28",
   "assets": {
-    "directory": "./"
+    "directory": "./public"
   }
 }
