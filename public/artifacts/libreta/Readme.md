@@ -9,8 +9,8 @@ It works for anything shaped like "N steps": a 16-week course, a 30-day challeng
 ## How to use it
 
 1. Open the page.
-2. Type what you're tracking, pick what it's measured in (weeks, days, modules, sessions or chapters) and how many.
-3. Hit **Crear libreta** (create notebook).
+2. If you've opened a notebook before, it's listed at the top — click it to pick up where you left off.
+3. Otherwise type what you're tracking, pick what it's measured in (weeks, days, modules, sessions or chapters) and how many, then hit **Crear libreta** (create notebook).
 
 From there, for each stage you can:
 
@@ -57,7 +57,7 @@ The configuration lives in the URL. A link like this:
 .../?t=Run%2010K&u=semanas&n=12
 ```
 
-opens the "Run 10K" notebook over 12 weeks. A different link with a different topic opens a separate notebook with its own progress stored independently. Bookmark each URL and you can run several in parallel.
+opens the "Run 10K" notebook over 12 weeks. A different link with a different topic opens a separate notebook with its own progress stored independently, and every notebook you open gets listed on the cover page so you can get back to it without the link.
 
 The parameters are:
 
@@ -84,7 +84,7 @@ Everything is in the same file:
 
 - **Interface text** is collected in the `T` object near the top of the script. Change those lines and you've translated the whole app.
 - **Units and durations** live in the `UNITS` object. That's where you add your own menu options.
-- **The stamps** are eight SVGs in the `STAMPS` array. Swap them for whatever you like; they're distributed in order across the stages.
+- **The stamps** are eight SVGs in the `STAMPS` array. Swap them for whatever you like. They cycle by position, so a program longer than eight stages will reuse them.
 - **Colors** are CSS variables at the top of the `<style>` block.
 - **The scoring scale** is in the `scoreColor` function. The current breakpoints are 50, 60, 70, 80 and 90.
 - **Sounds** are in the `SND` module. Each one is a short list of frequencies — change the notes, or set `master.gain` lower if you want it quieter.
