@@ -71,6 +71,27 @@
   .go:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
   .cover-foot{font-size:12px;color:var(--ink-soft);margin:16px 0 0}
 
+  .saved{text-align:left;margin:0 0 22px}
+  .saved-label{font-size:12.5px;font-weight:700;color:var(--ink-soft);margin:0 0 8px}
+  .saved-or{font-size:12.5px;color:var(--ink-soft);text-align:center;margin:16px 0 0;
+    display:flex;align-items:center;gap:10px}
+  .saved-or::before,.saved-or::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  .saved-item{display:flex;align-items:center;gap:9px;width:100%;
+    font:inherit;text-align:left;cursor:pointer;
+    background:#FDFBFF;border:1.5px solid var(--line);border-radius:13px;
+    padding:9px 11px;margin-bottom:7px;color:var(--ink);
+    transition:transform .12s ease,border-color .12s ease}
+  .saved-item:hover{transform:translateY(-1px);border-color:var(--blush)}
+  .saved-item:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+  .saved-item .st{flex:1;min-width:0}
+  .saved-item .sn{display:block;font-size:15px;font-weight:700;letter-spacing:-.01em;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .saved-item .sm{display:block;font-size:12px;color:var(--ink-soft)}
+  .saved-item .sp{flex:none;font-size:15px;font-weight:800;color:#fff;
+    background:var(--matcha);border-radius:9px;padding:3px 8px;line-height:1.25}
+  .saved-item .sp small{display:block;font-size:9px;font-weight:500;opacity:.9}
+
   /* ---------- encabezado ---------- */
   .masthead{margin-bottom:22px}
   .eyebrow{font-size:13px;font-weight:700;color:var(--ink-soft);margin:0 0 2px}
@@ -189,6 +210,12 @@
   </svg>
   <h1>Tu libreta de estampas</h1>
   <p class="lede">Un programa por etapas: marca lo que cierras, guarda lo que produjiste y ponte una calificación honesta.</p>
+
+  <section class="saved" id="saved" hidden>
+    <p class="saved-label">Tus libretas</p>
+    <div id="saved-list"></div>
+    <p class="saved-or">o empieza una nueva</p>
+  </section>
 
   <div class="field">
     <label for="in-topic">¿Qué vas a seguir?</label>
@@ -438,6 +465,67 @@
     };
   }
 
+  /* =========================================================
+     Índice de libretas — para que la portada sepa qué existe
+     ========================================================= */
+  var idxStore = makeStore("libreta:v2:index");
+
+  function loadIndex(){
+    return idxStore.get().then(function(raw){
+      if (!raw) return [];
+      try { var a = JSON.parse(raw); return Array.isArray(a) ? a : []; }
+      catch(e){ return []; }
+    });
+  }
+
+  // Se llama al abrir una libreta y al sellar una etapa: los dos
+  // momentos en que cambia el resumen. No en cada tecla.
+  function syncIndex(){
+    if (!state) return;
+    var entry = {
+      topic: state.topic,
+      unit:  state.unit,
+      len:   state.periods.length,
+      done:  state.periods.filter(function(p){ return p.done; }).length,
+      at:    Date.now()
+    };
+    loadIndex().then(function(list){
+      var rest = list.filter(function(e){
+        return !(e.topic === entry.topic && e.unit === entry.unit && e.len === entry.len);
+      });
+      rest.unshift(entry);
+      idxStore.set(JSON.stringify(rest.slice(0, 12)));
+    });
+  }
+
+  function renderSaved(){
+    return loadIndex().then(function(list){
+      if (!list.length) return;
+      var box = $("saved"), holder = $("saved-list");
+      holder.textContent = "";
+      list.forEach(function(e){
+        var u = UNITS[e.unit] || UNITS.semanas;
+        var b = document.createElement("button");
+        b.className = "saved-item";
+        b.type = "button";
+        b.innerHTML =
+          '<span class="st"><span class="sn"></span><span class="sm">' +
+          e.len + " " + u.many + '</span></span>' +
+          '<span class="sp">' + e.done + "/" + e.len + '<small>hechas</small></span>';
+        b.querySelector(".sn").textContent = e.topic;
+        b.addEventListener("click", function(){
+          SND.tap();
+          var url = new URL(location.href);
+          url.search = "?t=" + encodeURIComponent(e.topic) + "&u=" + e.unit + "&n=" + e.len;
+          history.replaceState(null, "", url.toString());
+          boot({ topic:e.topic, unit:e.unit, len:e.len });
+        });
+        holder.appendChild(b);
+      });
+      box.hidden = false;
+    });
+  }
+
   function slug(s){
     return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")
       .replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,40) || "libreta";
@@ -545,7 +633,7 @@
       b.type = "button";
       b.setAttribute("aria-label", unit.one + " " + p.n + (p.title ? ": " + p.title : "") + (p.done ? " (hecha)" : " (pendiente)"));
       b.style.setProperty("--rot", ((i * 37) % 15 - 7) + "deg");
-      b.innerHTML = p.done ? STAMPS[i % STAMPS.length] : '<span class="num">' + p.n + '</span>';
+      b.innerHTML = p.done ? STAMPS[(i * 3) % STAMPS.length] : '<span class="num">' + p.n + '</span>';
       b.addEventListener("click", function(){
         SND.tap();
         var el = $("p-" + p.n);
@@ -700,7 +788,7 @@
         if (p.done) SND.stamp(); else SND.unstamp();
         tick.setAttribute("aria-pressed", String(p.done));
         sec.classList.toggle("done", p.done);
-        save(); renderBoard(); renderStats();
+        save(); renderBoard(); renderStats(); syncIndex();
       });
 
       sec.append(head, body);
@@ -812,6 +900,7 @@
       coverEl.hidden = true;
       appEl.hidden = false;
       renderAll();
+      syncIndex();
     });
   }
 
@@ -823,6 +912,7 @@
   } else {
     fillLengths();
     coverEl.hidden = false;
+    renderSaved();
     $("in-topic").focus();
   }
 })();
