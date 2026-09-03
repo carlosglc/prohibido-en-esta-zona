@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Libreta de estampas</title>
+<meta name="description" content="Una libreta para seguir un programa de N semanas: marca lo hecho, guarda tus entregables y ponte una calificación.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --paper:#FBF7FF; --card:#FFFFFF;
+    --ink:#463055; --ink-soft:#8A76A0; --line:#E4D8F2;
+    --blush:#FFB3C7; --sky:#A9C9F5; --butter:#FFE7A3; --matcha:#A8D8A0;
+    --radius:18px; --shadow:0 2px 0 var(--line);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(circle at 12% 8%, #FFF0F5 0%, transparent 42%),
+      radial-gradient(circle at 88% 4%, #EAF2FF 0%, transparent 38%),
+      var(--paper);
+    color:var(--ink);
+    font-family:"M PLUS Rounded 1c", ui-rounded, "Hiragino Maru Gothic ProN", "Segoe UI", system-ui, sans-serif;
+    line-height:1.6; -webkit-font-smoothing:antialiased;
+    padding:28px 18px 90px;
+  }
+  .wrap{max-width:840px;margin:0 auto}
+  [hidden]{display:none !important}
+
+  /* ---------- portada ---------- */
+  .cover{
+    max-width:470px;margin:6vh auto 0;
+    background:var(--card);
+    border:2px dashed var(--line);
+    border-radius:26px;
+    padding:34px 28px 30px;
+    text-align:center;
+  }
+  .cover-mark{width:66px;height:66px;margin:0 auto 14px;display:block}
+  .cover h1{font-size:26px;font-weight:800;margin:0 0 6px;letter-spacing:-.015em;line-height:1.2}
+  .cover p.lede{font-size:14.5px;color:var(--ink-soft);margin:0 0 24px}
+
+  .field{text-align:left;margin-bottom:16px}
+  .field label{display:block;font-size:12.5px;font-weight:700;color:var(--ink-soft);margin-bottom:5px}
+
+  .field input[type=text], .field select{
+    width:100%;font:inherit;font-size:16px;color:var(--ink);
+    border:1.5px solid var(--line);border-radius:13px;
+    background:#FDFBFF;padding:10px 13px;
+  }
+  .field input[type=text]:focus,.field select:focus{outline:2px solid var(--sky);background:#fff}
+  .field input[type=text]::placeholder{color:#BCA9CE}
+  .field select{appearance:none;-webkit-appearance:none;cursor:pointer;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%238A76A0' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 14px center;background-size:12px;padding-right:38px}
+
+  .row{display:flex;gap:11px}
+  .row .field{flex:1;min-width:0}
+
+  .go{
+    width:100%;font:inherit;font-size:16px;font-weight:700;color:var(--ink);
+    background:var(--butter);border:2px solid #F0D175;border-radius:14px;
+    padding:12px;cursor:pointer;margin-top:6px;
+    transition:transform .12s ease;
+  }
+  .go:hover{transform:translateY(-2px)}
+  .go:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+  .cover-foot{font-size:12px;color:var(--ink-soft);margin:16px 0 0}
+
+  /* ---------- encabezado ---------- */
+  .masthead{margin-bottom:22px}
+  .eyebrow{font-size:13px;font-weight:700;color:var(--ink-soft);margin:0 0 2px}
+  h1.title{font-size:clamp(26px,5.4vw,38px);font-weight:800;line-height:1.15;margin:0 0 10px;letter-spacing:-.015em}
+  .status{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .chip{background:var(--card);border:1.5px solid var(--line);border-radius:999px;padding:5px 13px;font-size:13.5px;font-weight:500;box-shadow:var(--shadow)}
+  .chip b{font-weight:800}
+  .chip.next{background:var(--butter);border-color:#F0D175}
+
+  button.chip{cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:transform .12s ease,border-color .12s ease}
+  button.chip:hover{transform:translateY(-1px);border-color:var(--blush)}
+  button.chip:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+  button.chip svg{width:16px;height:16px;display:block}
+  button.chip.off{color:var(--ink-soft);background:#F6F1FB}
+
+  /* ---------- tablero ---------- */
+  .board{background:var(--card);border:2px dashed var(--line);border-radius:var(--radius);padding:16px 14px 14px;margin:20px 0 30px}
+  .board-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:9px}
+  @media (max-width:620px){ .board-grid{grid-template-columns:repeat(5,1fr)} }
+  .slot{position:relative;aspect-ratio:1;border:1.5px solid var(--line);border-radius:13px;background:#FCFAFE;cursor:pointer;display:grid;place-items:center;padding:0;font:inherit;color:var(--ink-soft);transition:transform .12s ease,border-color .12s ease}
+  .slot:hover{transform:translateY(-2px);border-color:var(--blush)}
+  .slot:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+  .slot .num{font-size:13px;font-weight:700}
+  .slot.stamped{border-color:transparent;background:transparent}
+  .slot.stamped .num{display:none}
+  .slot svg{width:78%;height:78%;display:block}
+  @keyframes press{0%{transform:scale(1.7) rotate(var(--rot));opacity:0}55%{transform:scale(.9) rotate(var(--rot));opacity:1}100%{transform:scale(1) rotate(var(--rot));opacity:1}}
+  .slot.stamped svg{animation:press .34s cubic-bezier(.2,1.4,.4,1) both;transform:rotate(var(--rot))}
+  @media (prefers-reduced-motion:reduce){.slot.stamped svg{animation:none}}
+  .board-legend{margin:12px 2px 0;font-size:12.5px;color:var(--ink-soft)}
+
+  /* ---------- periodos ---------- */
+  .period{background:var(--card);border:1.5px solid var(--line);border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow);scroll-margin-top:16px}
+  .period.done{background:#FCFFFB;border-color:#CBE8C4}
+  .period.flash{animation:flash .9s ease}
+  @keyframes flash{0%,100%{box-shadow:var(--shadow)}30%{box-shadow:0 0 0 4px var(--butter)}}
+  @media (prefers-reduced-motion:reduce){.period.flash{animation:none}}
+
+  .p-head{display:flex;gap:11px;align-items:flex-start}
+  .tick{flex:none;width:27px;height:27px;margin-top:3px;border:2px solid var(--line);border-radius:9px;background:#fff;cursor:pointer;display:grid;place-items:center;padding:0;transition:background .14s ease,border-color .14s ease}
+  .tick:hover{border-color:var(--matcha)}
+  .tick:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+  .tick svg{width:16px;height:16px;opacity:0;transition:opacity .14s ease}
+  .period.done .tick{background:var(--matcha);border-color:#8CC384}
+  .period.done .tick svg{opacity:1}
+
+  .p-titles{flex:1;min-width:0}
+  .p-label{font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:1px}
+  .titlefield{font:inherit;font-size:17px;font-weight:700;color:var(--ink);border:none;background:transparent;padding:1px 3px;margin:-1px -3px;border-radius:7px;width:100%;letter-spacing:-.01em}
+  .titlefield:hover{background:#F8F3FE}
+  .titlefield:focus{outline:2px solid var(--sky);background:#fff}
+  .titlefield::placeholder{color:#C6B4D6;font-weight:500}
+  .duefield{font:inherit;font-size:12.5px;color:var(--ink-soft);border:none;background:transparent;padding:1px 3px;margin:1px -3px 0;border-radius:6px;width:100%}
+  .duefield:hover{background:#F8F3FE}
+  .duefield:focus{outline:2px solid var(--sky);background:#fff}
+
+  .score-badge{flex:none;min-width:52px;text-align:center;border-radius:12px;padding:5px 8px;font-size:19px;font-weight:800;line-height:1.1;color:#fff;background:var(--line)}
+  .score-badge small{display:block;font-size:9.5px;font-weight:500;opacity:.85}
+  .score-badge.empty{background:#F0EAF8;color:var(--ink-soft)}
+
+  .p-body{padding:12px 0 2px 38px}
+  @media (max-width:520px){.p-body{padding-left:0}}
+  .field-label{font-size:12px;font-weight:700;color:var(--ink-soft);margin:0 0 5px}
+
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:9px;border-radius:99px;
+    background:linear-gradient(90deg,#F2849A 0%,#F0A36B 22%,#F5C86A 42%,#DFD173 60%,#B6D683 80%,#7FC98A 100%);outline:none;margin:2px 0 0}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:23px;height:23px;border-radius:50%;background:#fff;border:3px solid currentColor;cursor:pointer;box-shadow:0 1px 4px rgba(70,48,85,.22)}
+  input[type=range]::-moz-range-thumb{width:23px;height:23px;border-radius:50%;background:#fff;border:3px solid currentColor;cursor:pointer;box-shadow:0 1px 4px rgba(70,48,85,.22)}
+  input[type=range]:focus-visible{outline:3px solid var(--sky);outline-offset:4px}
+
+  .arts{list-style:none;margin:0 0 6px;padding:0}
+  .art{display:flex;align-items:center;gap:8px;padding:3px 0}
+  .art input[type=checkbox]{appearance:none;-webkit-appearance:none;flex:none;width:19px;height:19px;border:2px solid var(--line);border-radius:6px;background:#fff;cursor:pointer;display:grid;place-items:center;transition:background .13s ease,border-color .13s ease}
+  .art input[type=checkbox]:checked{background:var(--blush);border-color:#F294AF}
+  .art input[type=checkbox]:checked::after{content:"";width:9px;height:5px;border:2.4px solid #fff;border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
+  .art input[type=checkbox]:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+  .artname{font:inherit;font-size:14.5px;color:var(--ink);border:none;background:transparent;flex:1;min-width:0;padding:3px 5px;margin:-3px -5px;border-radius:7px}
+  .artname:hover{background:#F8F3FE}
+  .artname:focus{outline:2px solid var(--sky);background:#fff}
+  .artname::placeholder{color:#C6B4D6}
+  .art input[type=checkbox]:checked + .artname{color:var(--ink-soft);text-decoration:line-through;text-decoration-color:var(--blush)}
+  .kill{flex:none;border:none;background:transparent;cursor:pointer;color:var(--ink-soft);font-size:17px;line-height:1;padding:3px 6px;border-radius:7px;opacity:0;transition:opacity .13s ease}
+  .art:hover .kill,.kill:focus-visible{opacity:1}
+  .kill:hover{background:#FFEDF2;color:#D4607F}
+  .kill:focus-visible{outline:2px solid var(--sky)}
+
+  .add{border:1.5px dashed var(--line);background:transparent;color:var(--ink-soft);font:inherit;font-size:13.5px;font-weight:500;padding:5px 13px;border-radius:99px;cursor:pointer;transition:border-color .13s ease,color .13s ease}
+  .add:hover{border-color:var(--blush);color:#D4607F}
+  .add:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+
+  .note{width:100%;font:inherit;font-size:14px;line-height:1.55;color:var(--ink);border:1.5px solid var(--line);border-radius:12px;background:#FDFBFF;padding:9px 11px;resize:vertical;min-height:56px;margin-top:4px}
+  .note:focus{outline:2px solid var(--sky);background:#fff}
+  .note::placeholder{color:#BCA9CE}
+  .divider{height:1px;background:var(--line);margin:14px 0 12px;border:0}
+
+  .footer-bar{display:flex;flex-wrap:wrap;gap:9px;margin-top:26px;padding-top:20px;border-top:2px dashed var(--line)}
+  .btn{border:1.5px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:13.5px;font-weight:500;padding:8px 15px;border-radius:99px;cursor:pointer;box-shadow:var(--shadow);transition:transform .12s ease,border-color .12s ease}
+  .btn:hover{transform:translateY(-1px);border-color:var(--blush)}
+  .btn:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+  .btn.quiet{box-shadow:none;background:transparent;color:var(--ink-soft);border-style:dashed}
+
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(120%);background:var(--ink);color:#fff;padding:10px 20px;border-radius:99px;font-size:14px;font-weight:500;transition:transform .28s cubic-bezier(.2,1.2,.4,1);z-index:50;max-width:88vw;text-align:center}
+  .toast.up{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- ============ PORTADA ============ -->
+<section class="cover" id="cover" hidden>
+  <svg class="cover-mark" viewBox="0 0 40 40" aria-hidden="true">
+    <rect x="5" y="4" width="30" height="32" rx="6" fill="#FFB3C7"/>
+    <rect x="9" y="8" width="22" height="24" rx="3" fill="#fff"/>
+    <path d="M14 15h12M14 20h12M14 25h7" stroke="#FFB3C7" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="30" cy="29" r="7" fill="#A8D8A0"/>
+    <path d="M27 29l2.2 2.2L33.5 27" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </svg>
+  <h1>Tu libreta de estampas</h1>
+  <p class="lede">Un programa por etapas: marca lo que cierras, guarda lo que produjiste y ponte una calificación honesta.</p>
+
+  <div class="field">
+    <label for="in-topic">¿Qué vas a seguir?</label>
+    <input type="text" id="in-topic" placeholder="Correr 10K, leer DDIA, dejar el refresco…" autocomplete="off">
+  </div>
+
+  <div class="row">
+    <div class="field">
+      <label for="in-unit">Se mide en</label>
+      <select id="in-unit">
+        <option value="semanas">Semanas</option>
+        <option value="dias">Días</option>
+        <option value="modulos">Módulos</option>
+        <option value="sesiones">Sesiones</option>
+        <option value="capitulos">Capítulos</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="in-len">Cuántas</label>
+      <select id="in-len"></select>
+    </div>
+  </div>
+
+  <button class="go" id="btn-create">Crear libreta</button>
+  <p class="cover-foot">Todo se guarda en este navegador. No hay cuenta ni servidor.</p>
+</section>
+
+<!-- ============ APP ============ -->
+<div class="wrap" id="app" hidden>
+  <header class="masthead">
+    <p class="eyebrow" id="eyebrow"></p>
+    <h1 class="title" id="topic-title"></h1>
+    <div class="status">
+      <span class="chip"><b id="stat-done">0</b> <span id="stat-done-label"></span></span>
+      <span class="chip">promedio <b id="stat-avg">—</b></span>
+      <span class="chip">entregables <b id="stat-arts">0</b></span>
+      <span class="chip next" id="stat-next"></span>
+      <button class="chip" id="btn-sound" type="button" aria-pressed="true" title="Sonido"></button>
+    </div>
+  </header>
+
+  <section class="board" aria-label="Tablero de estampas">
+    <div class="board-grid" id="board"></div>
+    <p class="board-legend">Cada etapa cerrada se sella. Toca una estampa para saltar a ella.</p>
+  </section>
+
+  <main id="periods"></main>
+
+  <div class="footer-bar">
+    <button class="btn" id="btn-md">Copiar resumen en Markdown</button>
+    <button class="btn" id="btn-export">Descargar respaldo</button>
+    <button class="btn" id="btn-import">Cargar respaldo</button>
+    <button class="btn" id="btn-link">Copiar link de esta libreta</button>
+    <button class="btn quiet" id="btn-reset">Empezar otra</button>
+    <input type="file" id="file" accept="application/json" hidden>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* =========================================================
+     TEXTOS — cambia aquí para traducir toda la interfaz
+     ========================================================= */
+  var UNITS = {
+    semanas:   { one:"Semana",   many:"semanas",   lens:[4,6,8,12,16,26,52] },
+    dias:      { one:"Día",      many:"días",      lens:[7,14,21,30,66,90,100] },
+    modulos:   { one:"Módulo",   many:"módulos",   lens:[4,6,8,10,12,16,20,24] },
+    sesiones:  { one:"Sesión",   many:"sesiones",  lens:[4,6,8,10,12,16,20,24] },
+    capitulos: { one:"Capítulo", many:"capítulos", lens:[4,6,8,10,12,16,20,24,30] }
+  };
+
+  var T = {
+    artifacts:    "Entregables",
+    addArtifact:  "+ agregar entregable",
+    score:        "Cómo te salió",
+    notes:        "Notas",
+    notesPh:      "Qué se atoró, qué hiciste bien, qué vale la pena contar después.",
+    titlePh:      "Ponle nombre a esta etapa",
+    duePh:        "sin fecha de entrega",
+    artPh:        "nombre del entregable",
+    noScore:      "sin nota",
+    outOf:        "de 100",
+    nextUp:       "sigue: ",
+    allDone:      "programa completo",
+    copiedMd:     "Markdown copiado",
+    copiedLink:   "Link copiado",
+    copyFail:     "No se pudo copiar",
+    exported:     "Respaldo descargado",
+    imported:     "Respaldo cargado",
+    badFile:      "Ese archivo no tiene el formato de la libreta",
+    confirmReset: "Esto abre una libreta nueva. La actual queda guardada y puedes volver con su link. ¿Seguir?",
+    needTopic:    "Escribe qué vas a seguir"
+  };
+
+  /* =========================================================
+     ESTAMPAS — 8 SVG que se reparten entre las etapas
+     ========================================================= */
+  var STAMPS = [
+    '<svg viewBox="0 0 40 40"><path d="M20 6l4.2 9.4 10.3 1.1-7.7 6.9 2.2 10.1L20 28.4l-9 5.1 2.2-10.1-7.7-6.9 10.3-1.1z" fill="#FFD36B"/></svg>',
+    '<svg viewBox="0 0 40 40"><path d="M20 33S7 25 7 16.5A6.5 6.5 0 0120 13a6.5 6.5 0 0113 3.5C33 25 20 33 20 33z" fill="#FFB3C7"/></svg>',
+    '<svg viewBox="0 0 40 40"><circle cx="20" cy="11" r="6" fill="#C9AEEA"/><circle cx="29" cy="20" r="6" fill="#C9AEEA"/><circle cx="20" cy="29" r="6" fill="#C9AEEA"/><circle cx="11" cy="20" r="6" fill="#C9AEEA"/><circle cx="20" cy="20" r="4.5" fill="#FFE7A3"/></svg>',
+    '<svg viewBox="0 0 40 40"><path d="M25 6a13 13 0 100 28 15 15 0 010-28z" fill="#A9C9F5"/></svg>',
+    '<svg viewBox="0 0 40 40"><path d="M12 27a6 6 0 010-12 8 8 0 0115.4-2A6.5 6.5 0 1128.5 27z" fill="#BFDCF7"/></svg>',
+    '<svg viewBox="0 0 40 40"><circle cx="20" cy="14" r="6" fill="#A8D8A0"/><circle cx="14" cy="20" r="6" fill="#A8D8A0"/><circle cx="26" cy="20" r="6" fill="#A8D8A0"/><path d="M20 22v11" stroke="#7FBF77" stroke-width="2.6" stroke-linecap="round"/></svg>',
+    '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="13" fill="#F7C6A0"/><circle cx="20" cy="20" r="4.5" fill="#FBF7FF"/><circle cx="15" cy="14" r="1.7" fill="#E88BA6"/><circle cx="26" cy="17" r="1.7" fill="#8FC98A"/><circle cx="24" cy="27" r="1.7" fill="#7FAEE0"/></svg>',
+    '<svg viewBox="0 0 40 40"><path d="M9 18c0-6 5-9 11-9s11 3 11 9v8a4 4 0 01-4 4H13a4 4 0 01-4-4z" fill="#FFD9E4"/><path d="M11 12l2 5M29 12l-2 5" stroke="#F294AF" stroke-width="2.4" stroke-linecap="round"/><circle cx="16" cy="21" r="1.9" fill="#463055"/><circle cx="24" cy="21" r="1.9" fill="#463055"/><path d="M18.5 25.5h3" stroke="#463055" stroke-width="2" stroke-linecap="round"/></svg>'
+  ];
+
+  var CHECK = '<svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  /* =========================================================
+     SONIDO — sintetizado con Web Audio, sin archivos externos.
+     El navegador no deja sonar nada antes del primer clic del usuario,
+     así que el audio se enciende solo cuando alguien interactúa.
+     ========================================================= */
+  var SND = (function(){
+    var AC = null, master = null, muted = false;
+
+    try { muted = localStorage.getItem("libreta:sound") === "off"; } catch(e){}
+
+    function engine(){
+      if (!AC) {
+        var C = window.AudioContext || window.webkitAudioContext;
+        if (!C) return null;
+        try { AC = new C(); } catch(e){ return null; }
+
+        master = AC.createGain();
+        master.gain.value = 0.2;
+        master.connect(AC.destination);
+
+        // cola de eco suave: el "wavy"
+        var delay = AC.createDelay(1.0);
+        delay.delayTime.value = 0.165;
+        var fb = AC.createGain();  fb.gain.value = 0.3;
+        var lp = AC.createBiquadFilter();
+        lp.type = "lowpass"; lp.frequency.value = 2400;
+        var wet = AC.createGain(); wet.gain.value = 0.32;
+
+        master.connect(delay);
+        delay.connect(fb); fb.connect(delay);
+        delay.connect(lp); lp.connect(wet); wet.connect(AC.destination);
+      }
+      if (AC.state === "suspended") { try { AC.resume(); } catch(e){} }
+      return AC;
+    }
+
+    function note(freq, when, dur, o){
+      if (muted) return;
+      var c = engine(); if (!c) return;
+      o = o || {};
+      var t = c.currentTime + when;
+
+      var osc = c.createOscillator();
+      osc.type = o.type || "triangle";
+      osc.frequency.setValueAtTime(freq, t);
+      if (o.slide) osc.frequency.exponentialRampToValueAtTime(o.slide, t + dur);
+
+      var g = c.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(o.gain || 0.4, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+
+      if (o.vib) {
+        var lfo = c.createOscillator(), amt = c.createGain();
+        lfo.frequency.value = 6.5;
+        amt.gain.value = o.vib;
+        lfo.connect(amt); amt.connect(osc.frequency);
+        lfo.start(t); lfo.stop(t + dur);
+      }
+
+      osc.connect(g); g.connect(master);
+      osc.start(t); osc.stop(t + dur + 0.03);
+    }
+
+    var PENTA = [523, 587, 659, 784, 880, 1047, 1175, 1319];
+    var lastStep = -1;
+
+    return {
+      isMuted: function(){ return muted; },
+      toggle: function(){
+        muted = !muted;
+        try { localStorage.setItem("libreta:sound", muted ? "off" : "on"); } catch(e){}
+        if (!muted) note(880, 0, 0.12, {type:"sine", gain:0.3});
+        return muted;
+      },
+
+      // sello: acorde ascendente con vibrato, el momento premio
+      stamp: function(){
+        [784, 988, 1319].forEach(function(f, i){
+          note(f, i * 0.075, 0.34, {type:"triangle", gain:0.45, vib:9});
+        });
+        note(392, 0, 0.5, {type:"sine", gain:0.2});
+      },
+      unstamp: function(){ note(659, 0, 0.18, {type:"sine", gain:0.28, slide:392}); },
+
+      check:   function(){ note(1047, 0, 0.13, {type:"triangle", gain:0.32});
+                           note(1568, 0.045, 0.12, {type:"sine", gain:0.2}); },
+      uncheck: function(){ note(700, 0, 0.12, {type:"sine", gain:0.22, slide:523}); },
+
+      pop:  function(){ note(587, 0, 0.11, {type:"sine", gain:0.28, slide:880}); },
+      kill: function(){ note(320, 0, 0.14, {type:"triangle", gain:0.22, slide:190}); },
+      tap:  function(){ note(880, 0, 0.075, {type:"sine", gain:0.2}); },
+
+      // el slider suena solo al cambiar de nota, no en cada pixel
+      slide: function(v){
+        var step = Math.min(PENTA.length - 1, Math.floor(v / 100 * PENTA.length));
+        if (step === lastStep) return;
+        lastStep = step;
+        note(PENTA[step], 0, 0.075, {type:"sine", gain:0.15});
+      },
+
+      fanfare: function(){
+        [523, 659, 784, 1047].forEach(function(f, i){
+          note(f, i * 0.08, 0.42, {type:"triangle", gain:0.38, vib:7});
+        });
+      }
+    };
+  })();
+
+  var SPK_ON  = '<svg viewBox="0 0 24 24" fill="none"><path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z" fill="currentColor"/><path d="M15.5 9.2a4 4 0 010 5.6M18 6.7a7.5 7.5 0 010 10.6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>';
+  var SPK_OFF = '<svg viewBox="0 0 24 24" fill="none"><path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z" fill="currentColor"/><path d="M16 10l5 5M21 10l-5 5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>';
+
+  /* =========================================================
+     Persistencia: window.storage dentro de Claude, localStorage fuera
+     ========================================================= */
+  function makeStore(key){
+    return {
+      get: function(){
+        if (window.storage && window.storage.get) {
+          return window.storage.get(key).then(function(r){ return r ? r.value : null; })
+                                        .catch(function(){ return null; });
+        }
+        try { return Promise.resolve(localStorage.getItem(key)); }
+        catch(e){ return Promise.resolve(null); }
+      },
+      set: function(v){
+        if (window.storage && window.storage.set) {
+          return window.storage.set(key, v).catch(function(){});
+        }
+        try { localStorage.setItem(key, v); } catch(e){}
+        return Promise.resolve();
+      }
+    };
+  }
+
+  function slug(s){
+    return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+      .replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,40) || "libreta";
+  }
+
+  /* =========================================================
+     Escala de color: rojo -> naranja -> verde
+     ========================================================= */
+  function scoreColor(v){
+    var hue;
+    if (v <= 50)      hue = 2  + (v/50)      * 6;
+    else if (v <= 60) hue = 8  + ((v-50)/10) * 16;
+    else if (v <= 70) hue = 24 + ((v-60)/10) * 16;
+    else if (v <= 80) hue = 40 + ((v-70)/10) * 22;
+    else if (v <= 90) hue = 62 + ((v-80)/10) * 32;
+    else              hue = 94 + ((v-90)/10) * 40;
+    return "hsl(" + hue.toFixed(1) + "," + (58 + v*0.14).toFixed(0) + "%," + (58 - v*0.12).toFixed(0) + "%)";
+  }
+
+  /* ========================= estado ========================= */
+  var state = null, store = null, unit = null;
+
+  var $ = function(id){ return document.getElementById(id); };
+  var coverEl = $("cover"), appEl = $("app"),
+      boardEl = $("board"), periodsEl = $("periods"), toastEl = $("toast");
+
+  var toastTimer;
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add("up");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toastEl.classList.remove("up"); }, 2400);
+  }
+
+  function save(){ if (store) store.set(JSON.stringify(state)); }
+
+  function copyText(text, okMsg){
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function(){ toast(okMsg); })
+                                         .catch(function(){ toast(T.copyFail); });
+    } else { toast(T.copyFail); }
+  }
+
+  /* ========================= portada ========================= */
+  function fillLengths(){
+    var u = UNITS[$("in-unit").value];
+    var sel = $("in-len");
+    sel.textContent = "";
+    u.lens.forEach(function(n){
+      var o = document.createElement("option");
+      o.value = n;
+      o.textContent = n + " " + u.many;
+      sel.appendChild(o);
+    });
+    sel.value = u.lens[Math.min(3, u.lens.length - 1)];
+  }
+
+  $("in-unit").addEventListener("change", fillLengths);
+
+  $("btn-create").addEventListener("click", function(){
+    var topic = $("in-topic").value.trim();
+    if (!topic) { $("in-topic").focus(); toast(T.needTopic); return; }
+    SND.fanfare();
+    var cfg = { topic: topic, unit: $("in-unit").value, len: Number($("in-len").value) };
+    var url = new URL(location.href);
+    url.search = "?t=" + encodeURIComponent(cfg.topic) + "&u=" + cfg.unit + "&n=" + cfg.len;
+    history.replaceState(null, "", url.toString());
+    boot(cfg);
+  });
+
+  $("in-topic").addEventListener("keydown", function(e){
+    if (e.key === "Enter") $("btn-create").click();
+  });
+
+  /* ========================= render ========================= */
+  function renderStats(){
+    var done = state.periods.filter(function(p){ return p.done; });
+    var scored = state.periods.filter(function(p){ return p.score !== null; });
+
+    $("stat-done").textContent = done.length + " / " + state.periods.length;
+    $("stat-done-label").textContent = unit.many;
+
+    var avgEl = $("stat-avg");
+    if (scored.length) {
+      var avg = Math.round(scored.reduce(function(s,p){ return s + p.score; }, 0) / scored.length);
+      avgEl.textContent = avg;
+      avgEl.style.color = scoreColor(avg);
+    } else { avgEl.textContent = "—"; avgEl.style.color = ""; }
+
+    var total = 0, ok = 0;
+    state.periods.forEach(function(p){ p.arts.forEach(function(a){ total++; if (a.done) ok++; }); });
+    $("stat-arts").textContent = ok + "/" + total;
+
+    var next = state.periods.find(function(p){ return !p.done; });
+    $("stat-next").textContent = next
+      ? T.nextUp + unit.one.toLowerCase() + " " + next.n + (next.due ? " · " + next.due : "")
+      : T.allDone;
+  }
+
+  function renderBoard(){
+    boardEl.textContent = "";
+    state.periods.forEach(function(p, i){
+      var b = document.createElement("button");
+      b.className = "slot" + (p.done ? " stamped" : "");
+      b.type = "button";
+      b.setAttribute("aria-label", unit.one + " " + p.n + (p.title ? ": " + p.title : "") + (p.done ? " (hecha)" : " (pendiente)"));
+      b.style.setProperty("--rot", ((i * 37) % 15 - 7) + "deg");
+      b.innerHTML = p.done ? STAMPS[i % STAMPS.length] : '<span class="num">' + p.n + '</span>';
+      b.addEventListener("click", function(){
+        SND.tap();
+        var el = $("p-" + p.n);
+        el.scrollIntoView({behavior:"smooth", block:"center"});
+        el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+      });
+      boardEl.appendChild(b);
+    });
+  }
+
+  function renderBadge(badge, p){
+    if (p.score === null) {
+      badge.className = "score-badge empty";
+      badge.innerHTML = '—<small>' + T.noScore + '</small>';
+      badge.style.background = "";
+    } else {
+      badge.className = "score-badge";
+      badge.innerHTML = p.score + '<small>' + T.outOf + '</small>';
+      badge.style.background = scoreColor(p.score);
+    }
+  }
+
+  function renderArts(list, p){
+    list.textContent = "";
+    p.arts.forEach(function(a){
+      var li = document.createElement("li");
+      li.className = "art";
+
+      var cb = document.createElement("input");
+      cb.type = "checkbox"; cb.checked = a.done;
+      cb.addEventListener("change", function(){
+        a.done = cb.checked;
+        if (a.done) SND.check(); else SND.uncheck();
+        save(); renderStats();
+      });
+
+      var nm = document.createElement("input");
+      nm.className = "artname"; nm.value = a.name;
+      nm.placeholder = T.artPh;
+      nm.setAttribute("aria-label", T.artPh);
+      nm.addEventListener("input", function(){ a.name = nm.value; save(); });
+
+      var rm = document.createElement("button");
+      rm.className = "kill"; rm.type = "button";
+      rm.innerHTML = "&times;"; rm.title = "Quitar";
+      rm.setAttribute("aria-label", "Quitar entregable");
+      rm.addEventListener("click", function(){
+        SND.kill();
+        p.arts = p.arts.filter(function(x){ return x !== a; });
+        renderArts(list, p); save(); renderStats();
+      });
+
+      li.append(cb, nm, rm);
+      list.appendChild(li);
+    });
+  }
+
+  function renderPeriods(){
+    periodsEl.textContent = "";
+    state.periods.forEach(function(p){
+      var sec = document.createElement("section");
+      sec.className = "period" + (p.done ? " done" : "");
+      sec.id = "p-" + p.n;
+
+      var head = document.createElement("div");
+      head.className = "p-head";
+
+      var tick = document.createElement("button");
+      tick.className = "tick"; tick.type = "button";
+      tick.innerHTML = CHECK;
+      tick.setAttribute("aria-pressed", String(p.done));
+      tick.setAttribute("aria-label", "Marcar " + unit.one.toLowerCase() + " " + p.n + " como hecha");
+
+      var titles = document.createElement("div");
+      titles.className = "p-titles";
+
+      var lab = document.createElement("div");
+      lab.className = "p-label";
+      lab.textContent = unit.one + " " + p.n;
+
+      var tf = document.createElement("input");
+      tf.className = "titlefield"; tf.value = p.title;
+      tf.placeholder = T.titlePh;
+      tf.setAttribute("aria-label", "Título");
+      tf.addEventListener("input", function(){ p.title = tf.value; save(); });
+
+      var df = document.createElement("input");
+      df.className = "duefield"; df.value = p.due;
+      df.placeholder = T.duePh;
+      df.setAttribute("aria-label", "Fecha");
+      df.addEventListener("input", function(){ p.due = df.value; save(); renderStats(); });
+
+      titles.append(lab, tf, df);
+
+      var badge = document.createElement("div");
+      renderBadge(badge, p);
+      head.append(tick, titles, badge);
+
+      var body = document.createElement("div");
+      body.className = "p-body";
+
+      var artLab = document.createElement("p");
+      artLab.className = "field-label"; artLab.textContent = T.artifacts;
+
+      var list = document.createElement("ul");
+      list.className = "arts";
+      renderArts(list, p);
+
+      var add = document.createElement("button");
+      add.className = "add"; add.type = "button"; add.textContent = T.addArtifact;
+      add.addEventListener("click", function(){
+        SND.pop();
+        p.arts.push({ name:"", done:false });
+        renderArts(list, p); save(); renderStats();
+        var inputs = list.querySelectorAll(".artname");
+        if (inputs.length) inputs[inputs.length - 1].focus();
+      });
+
+      var hr = document.createElement("hr");
+      hr.className = "divider";
+
+      var scoreLab = document.createElement("p");
+      scoreLab.className = "field-label"; scoreLab.textContent = T.score;
+
+      var range = document.createElement("input");
+      range.type = "range"; range.min = 0; range.max = 100; range.step = 1;
+      range.value = p.score === null ? 70 : p.score;
+      range.style.color = scoreColor(Number(range.value));
+      range.setAttribute("aria-label", T.score);
+      range.addEventListener("input", function(){
+        p.score = Number(range.value);
+        SND.slide(p.score);
+        range.style.color = scoreColor(p.score);
+        renderBadge(badge, p); save(); renderStats();
+      });
+
+      var noteLab = document.createElement("p");
+      noteLab.className = "field-label";
+      noteLab.style.marginTop = "14px";
+      noteLab.textContent = T.notes;
+
+      var note = document.createElement("textarea");
+      note.className = "note"; note.value = p.note;
+      note.placeholder = T.notesPh;
+      note.setAttribute("aria-label", T.notes);
+      note.addEventListener("input", function(){ p.note = note.value; save(); });
+
+      body.append(artLab, list, add, hr, scoreLab, range, noteLab, note);
+
+      tick.addEventListener("click", function(){
+        p.done = !p.done;
+        if (p.done) SND.stamp(); else SND.unstamp();
+        tick.setAttribute("aria-pressed", String(p.done));
+        sec.classList.toggle("done", p.done);
+        save(); renderBoard(); renderStats();
+      });
+
+      sec.append(head, body);
+      periodsEl.appendChild(sec);
+    });
+  }
+
+  function renderAll(){
+    $("eyebrow").textContent = state.periods.length + " " + unit.many;
+    $("topic-title").textContent = state.topic;
+    document.title = state.topic + " — libreta";
+    renderBoard(); renderPeriods(); renderStats();
+  }
+
+  /* ========================= exportar ========================= */
+  function toMarkdown(){
+    var out = ["# " + state.topic, ""];
+    var scored = state.periods.filter(function(p){ return p.score !== null; });
+    var avg = scored.length ? Math.round(scored.reduce(function(s,p){ return s+p.score; },0)/scored.length) : null;
+    out.push(state.periods.filter(function(p){ return p.done; }).length + " de " +
+             state.periods.length + " " + unit.many + " cerradas" +
+             (avg !== null ? " · autoevaluación promedio: " + avg + "/100" : ""));
+    out.push("");
+    state.periods.forEach(function(p){
+      if (!p.done && p.score === null && !p.note && !p.arts.some(function(a){ return a.done; })) return;
+      out.push("## " + unit.one + " " + p.n + (p.title ? " — " + p.title : ""));
+      var meta = [p.done ? "cerrada" : "en curso"];
+      if (p.score !== null) meta.push("autoevaluación " + p.score + "/100");
+      if (p.due) meta.push(p.due);
+      out.push("_" + meta.join(" · ") + "_", "");
+      p.arts.forEach(function(a){ if (a.name) out.push("- [" + (a.done ? "x" : " ") + "] " + a.name); });
+      if (p.arts.some(function(a){ return a.name; })) out.push("");
+      if (p.note) out.push(p.note, "");
+    });
+    return out.join("\n");
+  }
+
+  $("btn-md").addEventListener("click", function(){ copyText(toMarkdown(), T.copiedMd); });
+  $("btn-link").addEventListener("click", function(){ copyText(location.href, T.copiedLink); });
+
+  $("btn-export").addEventListener("click", function(){
+    var blob = new Blob([JSON.stringify(state, null, 2)], {type:"application/json"});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = slug(state.topic) + ".json"; a.click();
+    URL.revokeObjectURL(url);
+    toast(T.exported);
+  });
+
+  $("btn-import").addEventListener("click", function(){ $("file").click(); });
+  $("file").addEventListener("change", function(){
+    var f = this.files && this.files[0];
+    if (!f) return;
+    var r = new FileReader();
+    r.onload = function(){
+      try {
+        var parsed = JSON.parse(r.result);
+        if (!parsed || !Array.isArray(parsed.periods)) throw new Error("formato");
+        state = parsed;
+        unit = UNITS[state.unit] || UNITS.semanas;
+        save(); renderAll(); toast(T.imported);
+      } catch(e){ toast(T.badFile); }
+    };
+    r.readAsText(f);
+    this.value = "";
+  });
+
+  var soundBtn = $("btn-sound");
+  function paintSoundBtn(){
+    var off = SND.isMuted();
+    soundBtn.innerHTML = (off ? SPK_OFF : SPK_ON) + "<span>" + (off ? "sin sonido" : "sonido") + "</span>";
+    soundBtn.classList.toggle("off", off);
+    soundBtn.setAttribute("aria-pressed", String(!off));
+    soundBtn.setAttribute("aria-label", off ? "Encender sonido" : "Apagar sonido");
+  }
+  soundBtn.addEventListener("click", function(){ SND.toggle(); paintSoundBtn(); });
+  paintSoundBtn();
+
+  Array.prototype.forEach.call(document.querySelectorAll(".footer-bar .btn"), function(b){
+    b.addEventListener("click", function(){ SND.tap(); });
+  });
+
+  $("btn-reset").addEventListener("click", function(){
+    if (!confirm(T.confirmReset)) return;
+    history.replaceState(null, "", location.pathname);
+    location.reload();
+  });
+
+  /* ========================= arranque ========================= */
+  function fresh(cfg){
+    var periods = [];
+    for (var i = 1; i <= cfg.len; i++) {
+      periods.push({ n:i, title:"", due:"", done:false, score:null, note:"", arts:[] });
+    }
+    return { topic:cfg.topic, unit:cfg.unit, periods:periods };
+  }
+
+  function boot(cfg){
+    unit  = UNITS[cfg.unit] || UNITS.semanas;
+    store = makeStore("libreta:v2:" + slug(cfg.topic) + ":" + cfg.unit + ":" + cfg.len);
+    store.get().then(function(raw){
+      if (raw) {
+        try {
+          var parsed = JSON.parse(raw);
+          state = (parsed && Array.isArray(parsed.periods)) ? parsed : fresh(cfg);
+        } catch(e){ state = fresh(cfg); }
+      } else { state = fresh(cfg); }
+      unit = UNITS[state.unit] || unit;
+      coverEl.hidden = true;
+      appEl.hidden = false;
+      renderAll();
+    });
+  }
+
+  var q = new URLSearchParams(location.search);
+  var qt = q.get("t"), qu = q.get("u"), qn = parseInt(q.get("n"), 10);
+
+  if (qt && UNITS[qu] && qn > 0 && qn <= 366) {
+    boot({ topic: qt, unit: qu, len: qn });
+  } else {
+    fillLengths();
+    coverEl.hidden = false;
+    $("in-topic").focus();
+  }
+})();
+</script>
+</body>
+</html>
