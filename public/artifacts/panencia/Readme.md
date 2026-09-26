@@ -19,7 +19,7 @@ Weeks run Monday to Sunday and an order counts in the week of its delivery day.
 
 This copy keeps everything in your browser (`localStorage`), starting from Panencia's menu. Nobody else sees it, and it doesn't sync between devices.
 
-The real one runs as a Claude artifact with a shared database, so Camila and Carlos see the same orders from their phones and Claude can read or load sales from chat. The same file works in both places: inside Claude it uses the `db` capability, anywhere else it falls back to the browser.
+The real one runs as a Claude artifact with a private shared database, so the bakery sees the same orders from their phones and Claude can read or load sales from chat. The same file works in both places: inside Claude it uses the `db` capability, anywhere else it falls back to the browser.
 
 ## Source
 
