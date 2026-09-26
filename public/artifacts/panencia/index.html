@@ -202,7 +202,6 @@ details[open] summary::after{content:"–"}
         <textarea id="paste-text" placeholder="Hola! me apartas 2 hogazas de hierbas y 4 galletas chocochips para el sábado?"></textarea>
         <div class="row">
           <button class="btn" type="button" id="parse-local">Convertir en pedido</button>
-          <button class="btn ghost" type="button" id="parse-claude" hidden>Leer con Claude</button>
         </div>
         <p class="small muted" id="parse-note" style="margin:0" hidden></p>
       </details>
@@ -339,7 +338,7 @@ details[open] summary::after{content:"–"}
 
   // ---------- state ----------
   const S = {
-    db: null, sample: null,
+    db: null,
     menu: [], orders: [], config: {},
     cart: {},             // productId -> qty
     pay: "",              // "", "transferencia", "efectivo"
@@ -602,32 +601,6 @@ details[open] summary::after{content:"–"}
     if (r.date) note += ` Entrega: ${dayLabel(r.date)}.`;
     applyParsed(r.items, r.date, note);
   }
-  async function onParseClaude() {
-    const txt = $("#paste-text").value; if (!txt.trim()) { toast("Pega primero el mensaje"); return; }
-    const btn = $("#parse-claude"); btn.disabled = true; const n = $("#parse-note"); n.hidden = false; n.textContent = "Leyendo el mensaje…";
-    const menu = activeMenu().map(p => ({ id: p.id, name: p.name, price: p.price, unit: p.unit || "" }));
-    const prompt = `Eres el asistente de una panadería de masa madre en México (Panencia). Convierte el mensaje de un cliente en un pedido usando SOLO productos del menú.
-Hoy es ${longDay(ymd(today()))} (${ymd(today())}).
-Menú (JSON): ${JSON.stringify(menu)}
-Mensaje del cliente:
-"""${txt.slice(0, 4000)}"""
-Responde solo con JSON de esta forma: {"items":[{"id":"<id del menú>","qty":<entero>}],"deliveryDate":"YYYY-MM-DD o null","customerName":"nombre si lo dice o null","notes":"instrucciones especiales o null","unmatched":["cosas pedidas que no están en el menú"]}`;
-    try {
-      const r = await S.sample.json(prompt, { modelTier: "quick" });
-      const items = {}; for (const it of (r && r.items) || []) if (menuById(it.id) && +it.qty > 0) items[it.id] = (items[it.id] || 0) + Math.round(+it.qty);
-      const date = r && /^\d{4}-\d{2}-\d{2}$/.test(r.deliveryDate || "") ? r.deliveryDate : null;
-      if (r && r.customerName && !$("#cust-name").value.trim()) $("#cust-name").value = r.customerName;
-      if (r && r.notes && !$("#notes").value.trim()) $("#notes").value = r.notes;
-      const count = Object.keys(items).length;
-      let note = count ? `Claude encontró ${count} ${count === 1 ? "producto" : "productos"}. Revisa antes de guardar.` : "Claude no encontró productos del menú en el mensaje.";
-      if (r && r.unmatched && r.unmatched.length) note += ` Fuera del menú: ${r.unmatched.join(", ")}.`;
-      applyParsed(items, date, note);
-    } catch (e) {
-      if (e && e.code === "not_granted") { btn.hidden = true; n.textContent = "Sin permiso para usar Claude aquí. Usa Convertir en pedido."; }
-      else if (e && e.code === "rate_limited") n.textContent = "Demasiadas consultas seguidas. Espera un momento.";
-      else n.textContent = "No se pudo leer con Claude. Usa Convertir en pedido.";
-    } finally { btn.disabled = false; }
-  }
 
   // ---------- orders view ----------
   function weekOrders(ws) { const key = ymd(ws); return S.orders.filter(o => orderWeek(o) === key); }
@@ -806,7 +779,6 @@ Responde solo con JSON de esta forma: {"items":[{"id":"<id del menú>","qty":<en
   $("#delivery-date").addEventListener("change", renderDateChips);
   $("#cust-name").addEventListener("change", () => { const ph = S.phones && S.phones.get($("#cust-name").value.trim()); if (ph && !$("#cust-phone").value) $("#cust-phone").value = ph; });
   $("#parse-local").addEventListener("click", onParseLocal);
-  $("#parse-claude").addEventListener("click", onParseClaude);
   $("#copy-msg").addEventListener("click", () => copyText($("#saved-msg").textContent, $("#saved-msg")));
   $("#new-order").addEventListener("click", () => { $("#saved-panel").hidden = true; $("#order-form").hidden = false; resetForm(); });
   $("#cancel-edit").addEventListener("click", resetForm);
@@ -858,11 +830,6 @@ Responde solo con JSON de esta forma: {"items":[{"id":"<id del menú>","qty":<en
     db.collection("menu").onSnapshot(snap => { S.menu = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderAll(); }, onErr);
     db.collection("orders").orderBy("deliveryDate", "desc").limit(1000).onSnapshot(snap => { S.orders = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderCustomers(); renderAll(); }, onErr);
     db.doc("config/app").onSnapshot(snap => { S.config = snap.exists ? { ...snap.data() } : {}; if (S.tab === "menu") renderMenuEditor(); }, onErr);
-  })();
-  (async () => {
-    const c = window.claude; if (!c || !c.use) return;
-    const sample = await c.use("sample");
-    if (sample) { S.sample = sample; $("#parse-claude").hidden = false; }
   })();
 })();
 </script>
