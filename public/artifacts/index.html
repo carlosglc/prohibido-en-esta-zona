@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <title>Proyectos · prohibido en esta zona</title>
+  <meta property="og:title" content="Proyectos · prohibido en esta zona">
+  <meta property="og:description" content="Herramientas que construyo: una libreta para seguir programas por etapas y el registro de pedidos de Panencia.">
+  <meta property="og:image" content="https://prohibidoenestazona.com/pared.jpg">
+  <meta property="og:url" content="https://prohibidoenestazona.com/artifacts/">
+  <link rel="stylesheet" href="/index.css">
+  <style>
+    .projects { max-width: 880px; margin: 0 auto; padding: 32px 16px 56px; }
+    .projects h1 { color: white; font-size: 40px; margin: 0 0 24px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+    .project { display: flex; flex-direction: column; gap: 10px; background: white; color: #2a0a10; border-radius: 6px; padding: 22px; text-decoration: none; border: 3px solid white; }
+    .project:hover, .project:focus-visible { border-color: orange; }
+    .project h2 { margin: 0; font-size: 26px; color: #c8102e; }
+    .project p { margin: 0; text-align: left; font-size: 17px; color: #2a0a10; line-height: 1.45; }
+    .project .go { margin-top: auto; font-weight: 700; color: #c8102e; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo"><a href="/"><img src="/logo.jpg" alt="Logo"></a></div>
+    <ul class="nav-links">
+      <li><a href="/">Home</a></li>
+      <li><a href="/artifacts/">Proyectos</a></li>
+      <li><a href="#">Blog</a></li>
+      <li><a href="#">Servicios</a></li>
+      <li><a href="#">Panencia</a></li>
+    </ul>
+  </nav>
+  <main class="projects">
+    <h1>Proyectos</h1>
+    <div class="grid">
+      <a class="project" href="/artifacts/libreta/">
+        <h2>Libreta de estampas</h2>
+        <p>Para seguir un programa por etapas: marcas lo que terminas, guardas lo que produjiste y te calificas de 0 a 100.</p>
+        <span class="go">Abrir →</span>
+      </a>
+      <a class="project" href="/artifacts/panencia/">
+        <h2>Panencia · Pedidos</h2>
+        <p>El registro de ventas de Panencia, nuestra panadería de masa madre. Creas la orden, la mandas por WhatsApp, marcas quién ya pagó y ves la lista de horneado de la semana.</p>
+        <span class="go">Abrir →</span>
+      </a>
+    </div>
+  </main>
+</body>
+</html>

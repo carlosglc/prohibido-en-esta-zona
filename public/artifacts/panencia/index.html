@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Registro de pedidos de Panencia: crea la orden, mándala por WhatsApp, marca pagos y ve la lista de horneado de la semana.">
+<title>Panencia Pedidos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+:root{
+  --bg:#F3F4F0; --surface:#FFFFFF; --surface-2:#E9EBE5; --line:#D7DAD1;
+  --ink:#1D211C; --muted:#646B61; --accent:#6E3F22; --accent-ink:#FFFFFF; --accent-soft:#F0E4DA;
+  --ok:#2E7249; --ok-soft:#DCEFE2; --warn:#9A5B0B; --warn-soft:#F8E9CF; --info:#34557A; --info-soft:#DDE7F2; --danger:#A3312A; --danger-soft:#F6DEDB;
+  --radius:10px; --bar-h:64px;
+  --display:"Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --body:"Atkinson Hyperlegible", -apple-system, "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#141613; --surface:#1D201C; --surface-2:#272B26; --line:#363B34;
+    --ink:#ECEEE8; --muted:#A0A79C; --accent:#D69C6E; --accent-ink:#1B120C; --accent-soft:#3A2A1F;
+    --ok:#7CC89A; --ok-soft:#1E3526; --warn:#E6B15E; --warn-soft:#3A2C14; --info:#8FB3DC; --info-soft:#1D2B3B; --danger:#EE8F86; --danger-soft:#3D1F1C;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#141613; --surface:#1D201C; --surface-2:#272B26; --line:#363B34;
+  --ink:#ECEEE8; --muted:#A0A79C; --accent:#D69C6E; --accent-ink:#1B120C; --accent-soft:#3A2A1F;
+  --ok:#7CC89A; --ok-soft:#1E3526; --warn:#E6B15E; --warn-soft:#3A2C14; --info:#8FB3DC; --info-soft:#1D2B3B; --danger:#EE8F86; --danger-soft:#3D1F1C;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--body);-webkit-text-size-adjust:100%;padding-inline:16px;padding-block:0 calc(var(--bar-h) + 96px + env(safe-area-inset-bottom,0px))}
+.wrap{max-width:640px;margin:0 auto}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;letter-spacing:-.01em}
+h2{font-size:1.35rem}
+h3{font-size:1.02rem}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.small{font-size:.86rem}
+.label{font-size:.74rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:18px 10px}
+.brand{display:flex;flex-direction:column}
+.brand h1{font-size:1.7rem;line-height:1}
+.brand span{font-size:.86rem;color:var(--muted)}
+.conn{font-size:.78rem;padding:4px 10px;border-radius:999px;background:var(--surface-2);color:var(--muted);white-space:nowrap}
+.conn.ok{background:var(--ok-soft);color:var(--ok)}
+.conn.bad{background:var(--danger-soft);color:var(--danger)}
+
+/* tabbar */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabbar .in{max-width:640px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);height:var(--bar-h)}
+.tabbar button{background:none;border:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:.78rem;color:var(--muted)}
+.tabbar button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tabbar button[aria-selected="true"]{color:var(--accent);font-weight:700}
+.badge{background:var(--warn);color:var(--surface);border-radius:999px;font-size:.68rem;padding:0 6px;margin-left:2px;font-weight:700}
+
+/* generic */
+.view{display:flex;flex-direction:column;gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px;display:flex;flex-direction:column;gap:10px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.grow{flex:1 1 160px;min-width:0}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:.84rem;color:var(--muted)}
+input[type=text],input[type=tel],input[type=number],input[type=date],textarea,select{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 11px;min-height:44px}
+textarea{min-height:84px;resize:vertical}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:9px 14px;min-height:42px;font-weight:700}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--danger);border-color:var(--danger)}
+.btn.sm{min-height:34px;padding:5px 10px;font-size:.86rem}
+.btn:disabled{opacity:.5;cursor:default}
+a.btn{color:var(--ink);text-decoration:none;display:inline-flex;align-items:center}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:.88rem;min-height:36px}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px;font-size:.78rem;font-weight:700;white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.pill.pend{background:var(--warn-soft);color:var(--warn)}
+.pill.paid{background:var(--ok-soft);color:var(--ok)}
+.pill.done{background:var(--info-soft);color:var(--info)}
+.empty{padding:22px 14px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:var(--radius)}
+
+/* product picker */
+.cat{display:flex;flex-direction:column}
+.cat h3{padding:6px 0 4px;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:var(--body)}
+.prod{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.prod .nm{font-weight:700;line-height:1.2}
+.prod .pr{font-size:.86rem;color:var(--muted)}
+.prod.on .nm{color:var(--accent)}
+.stepper{display:flex;align-items:center;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--bg)}
+.stepper button{width:40px;height:40px;border:0;background:none;font-size:1.25rem;line-height:1}
+.stepper output{min-width:28px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
+.prod:not(.on) .stepper .minus{visibility:hidden}
+
+/* order bar */
+.orderbar{position:fixed;left:0;right:0;bottom:calc(var(--bar-h) + env(safe-area-inset-bottom,0px));z-index:19;padding:10px 16px;background:linear-gradient(to top,var(--bg) 70%,transparent)}
+.orderbar .in{max-width:640px;margin:0 auto;display:flex;gap:12px;align-items:center;justify-content:space-between;background:var(--ink);color:var(--bg);border-radius:12px;padding:10px 10px 10px 16px}
+.orderbar .tot{font-family:var(--display);font-size:1.3rem;font-variant-numeric:tabular-nums}
+.orderbar .sub{font-size:.8rem;opacity:.75}
+.orderbar .btn{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+
+/* ticket */
+.ticket{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;white-space:pre-wrap;font-size:.95rem;line-height:1.5;font-variant-numeric:tabular-nums;position:relative}
+.ticket::after{content:"";position:absolute;left:12px;right:12px;bottom:-1px;border-bottom:2px dashed var(--line)}
+
+/* orders */
+.weeknav{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.weeknav .t{text-align:center;display:flex;flex-direction:column}
+.weeknav .t b{font-family:var(--display);font-size:1.1rem}
+.icon-btn{width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--surface);font-size:1.2rem}
+.order{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.order.pend{border-left:4px solid var(--warn)}
+.order .hd{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.order .who{font-weight:700;font-size:1.05rem;overflow-wrap:anywhere}
+.order .amt{font-family:var(--display);font-size:1.15rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.order .items{font-size:.92rem;color:var(--muted)}
+.order .acts{display:flex;gap:6px;flex-wrap:wrap}
+.dayhead{font-weight:700;font-size:.86rem;color:var(--muted);padding-top:4px}
+.inline-confirm{display:flex;gap:6px;flex-wrap:wrap;align-items:center;background:var(--surface-2);border-radius:8px;padding:8px}
+
+/* week */
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px}
+.stat .v{font-family:var(--display);font-size:1.45rem;font-variant-numeric:tabular-nums;line-height:1.15}
+.stat.hl{background:var(--accent-soft);border-color:transparent}
+.bake{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.bake th,.bake td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:right;font-size:.92rem}
+.bake th:first-child,.bake td:first-child{text-align:left}
+.bake thead th{font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.bake tfoot td{font-weight:700;border-bottom:0}
+.scroll-x{overflow-x:auto}
+
+/* menu editor */
+.mitem{display:grid;grid-template-columns:1fr 92px 92px;gap:8px;align-items:end;padding:10px 0;border-top:1px solid var(--line)}
+.mitem .full{grid-column:1/-1}
+.mitem .flags{grid-column:1/-1;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:.86rem}
+.margin{font-size:.8rem;font-weight:700}
+.margin.low{color:var(--danger)}
+.margin.ok{color:var(--ok)}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--bar-h) + 90px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:40;font-size:.92rem;max-width:calc(100% - 32px)}
+details summary{cursor:pointer;font-weight:700;list-style:none;display:flex;justify-content:space-between;align-items:center}
+details summary::-webkit-details-marker{display:none}
+details summary::after{content:"+";font-size:1.3rem;color:var(--muted)}
+details[open] summary::after{content:"–"}
+@media (min-width:560px){.stats{grid-template-columns:repeat(4,1fr)}}
+@media (prefers-reduced-motion:no-preference){.btn,.chip,.stepper button{transition:background .15s,color .15s}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><h1>Panencia</h1><span>Pedidos y ventas</span></div>
+    <span class="conn" id="conn">Conectando…</span>
+  </header>
+
+  <!-- NUEVO PEDIDO -->
+  <section class="view" id="view-nuevo" data-view="nuevo">
+    <div class="card" id="saved-panel" hidden>
+      <div class="row" style="justify-content:space-between"><h2 id="saved-title">Pedido guardado</h2><span class="pill pend" id="saved-pill">Por cobrar</span></div>
+      <p class="muted small" style="margin:0">Mándale este mensaje a tu cliente. Queda guardado en Pedidos.</p>
+      <div class="ticket" id="saved-msg"></div>
+      <div class="row">
+        <button class="btn primary" id="copy-msg" type="button">Copiar mensaje</button>
+        <a class="btn" id="wa-link" href="#" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center">Abrir WhatsApp</a>
+        <button class="btn ghost" id="new-order" type="button">Nuevo pedido</button>
+      </div>
+      <p class="muted small" style="margin:0" id="wa-note"></p>
+    </div>
+
+    <form id="order-form" class="view" autocomplete="off">
+      <div class="row" style="justify-content:space-between" id="editing-bar" hidden>
+        <span class="pill done" id="editing-label">Editando pedido</span>
+        <button class="btn sm ghost" type="button" id="cancel-edit">Cancelar edición</button>
+      </div>
+      <details class="card" id="paste-card">
+        <summary>Pegar mensaje del cliente</summary>
+        <p class="muted small" style="margin:0">Pega el mensaje tal cual te llegó (por ejemplo, “2 hogazas natural y un apple pie para el sábado”) y lo convierto en pedido para que lo revises.</p>
+        <textarea id="paste-text" placeholder="Hola! me apartas 2 hogazas de hierbas y 4 galletas chocochips para el sábado?"></textarea>
+        <div class="row">
+          <button class="btn" type="button" id="parse-local">Convertir en pedido</button>
+          <button class="btn ghost" type="button" id="parse-claude" hidden>Leer con Claude</button>
+        </div>
+        <p class="small muted" id="parse-note" style="margin:0" hidden></p>
+      </details>
+
+      <div class="card">
+        <div class="row">
+          <div class="field grow"><label for="cust-name">Cliente</label><input type="text" id="cust-name" list="cust-list" placeholder="Nombre o apodo" required></div>
+          <div class="field grow"><label for="cust-phone">WhatsApp (opcional)</label><input type="tel" id="cust-phone" placeholder="55 1234 5678" inputmode="tel"></div>
+        </div>
+        <datalist id="cust-list"></datalist>
+      </div>
+
+      <div class="card">
+        <div class="row" style="justify-content:space-between"><h2>Productos</h2><span class="small muted" id="menu-status"></span></div>
+        <div id="picker"></div>
+      </div>
+
+      <div class="card">
+        <h2>Entrega y pago</h2>
+        <div class="field"><label for="delivery-date">Día de entrega</label>
+          <div class="chips" id="date-chips"></div>
+          <input type="date" id="delivery-date" required>
+        </div>
+        <div class="row">
+          <div class="field grow"><label for="shipping">Envío ($)</label><input type="number" id="shipping" min="0" step="1" inputmode="numeric" placeholder="0"></div>
+          <div class="field grow"><label for="discount">Descuento ($)</label><input type="number" id="discount" min="0" step="1" inputmode="numeric" placeholder="0"></div>
+        </div>
+        <div class="field"><span class="small muted">Pago</span>
+          <div class="chips" id="pay-chips" role="group" aria-label="Pago">
+            <button type="button" class="chip" data-pay="" aria-pressed="true">Por cobrar</button>
+            <button type="button" class="chip" data-pay="transferencia" aria-pressed="false">Pagado · transferencia</button>
+            <button type="button" class="chip" data-pay="efectivo" aria-pressed="false">Pagado · efectivo</button>
+          </div>
+        </div>
+        <div class="field"><label for="notes">Notas</label><textarea id="notes" placeholder="Rebanado, sin ajonjolí, recoge a las 5…"></textarea></div>
+      </div>
+    </form>
+  </section>
+
+  <!-- PEDIDOS -->
+  <section class="view" id="view-pedidos" data-view="pedidos" hidden>
+    <div class="weeknav">
+      <button class="icon-btn" type="button" data-week="-1" aria-label="Semana anterior">‹</button>
+      <div class="t"><b class="week-label"></b><span class="small muted week-sub"></span></div>
+      <button class="icon-btn" type="button" data-week="1" aria-label="Semana siguiente">›</button>
+    </div>
+    <div class="chips" id="order-filter" role="group" aria-label="Filtro">
+      <button type="button" class="chip" data-filter="all" aria-pressed="true">Todos</button>
+      <button type="button" class="chip" data-filter="pend" aria-pressed="false">Por cobrar</button>
+      <button type="button" class="chip" data-filter="undelivered" aria-pressed="false">Por entregar</button>
+      <button type="button" class="chip" data-filter="allpend" aria-pressed="false">Todo lo que me deben</button>
+    </div>
+    <div id="order-list" class="view"></div>
+  </section>
+
+  <!-- SEMANA -->
+  <section class="view" id="view-semana" data-view="semana" hidden>
+    <div class="weeknav">
+      <button class="icon-btn" type="button" data-week="-1" aria-label="Semana anterior">‹</button>
+      <div class="t"><b class="week-label"></b><span class="small muted week-sub"></span></div>
+      <button class="icon-btn" type="button" data-week="1" aria-label="Semana siguiente">›</button>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between"><h2>Lista de horneado</h2><span class="small muted">piezas por día de entrega</span></div>
+      <div class="scroll-x" id="bake"></div>
+    </div>
+    <div class="card">
+      <h2>Por cobrar esta semana</h2>
+      <div id="owed"></div>
+    </div>
+    <div class="card">
+      <h2>Últimas semanas</h2>
+      <div class="scroll-x" id="history"></div>
+    </div>
+  </section>
+
+  <!-- MENU -->
+  <section class="view" id="view-menu" data-view="menu" hidden>
+    <div class="card">
+      <h2>Menú y precios</h2>
+      <p class="muted small" style="margin:0">Los cambios se guardan al salir de cada campo. El costo viene de tu hoja de costeo y sirve para calcular la ganancia estimada. Los pedidos ya guardados conservan el precio con el que se hicieron.</p>
+      <div id="menu-editor"></div>
+    </div>
+    <div class="card">
+      <h3>Agregar producto</h3>
+      <div class="mitem" style="border-top:0">
+        <div class="field"><label for="new-name">Nombre</label><input type="text" id="new-name" placeholder="Panqué de plátano"></div>
+        <div class="field"><label for="new-price">Precio</label><input type="number" id="new-price" min="0" step="1"></div>
+        <div class="field"><label for="new-cost">Costo</label><input type="number" id="new-cost" min="0" step="0.01"></div>
+        <div class="field full"><label for="new-cat">Sección</label><select id="new-cat"></select></div>
+      </div>
+      <div class="row"><button class="btn primary" type="button" id="add-prod">Agregar al menú</button></div>
+    </div>
+    <div class="card">
+      <h3>Mensaje de pago</h3>
+      <p class="muted small" style="margin:0">Va al final de cada pedido que mandas (por ejemplo, tu CLABE o cómo te pueden pagar).</p>
+      <textarea id="pay-note" placeholder="Puedes pagar por transferencia a BBVA · CLABE 012 … a nombre de …"></textarea>
+    </div>
+  </section>
+</div>
+
+<div class="orderbar" id="orderbar" hidden>
+  <div class="in">
+    <div><div class="tot num" id="bar-total">$0</div><div class="sub" id="bar-sub">0 piezas</div></div>
+    <button class="btn" type="submit" form="order-form" id="save-order">Guardar pedido</button>
+  </div>
+</div>
+
+<nav class="tabbar" aria-label="Secciones">
+  <div class="in" role="tablist">
+    <button type="button" role="tab" data-tab="nuevo" aria-selected="true"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Nuevo</button>
+    <button type="button" role="tab" data-tab="pedidos" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-2.5-1.5L12 20l-2.5-1.5L7 20z"/><path d="M9.5 9h5M9.5 12.5h5"/></svg><span>Pedidos<span class="badge" id="pend-badge" hidden></span></span></button>
+    <button type="button" role="tab" data-tab="semana" aria-selected="false"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>Semana</button>
+    <button type="button" role="tab" data-tab="menu" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M5 16c0-5 3-9 7-9s7 4 7 9z"/><path d="M4 16h16v3H4z"/><path d="M9 10.5l1 2M13 10l1 2"/></svg>Menú</button>
+  </div>
+</nav>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(() => {
+  "use strict";
+  const CATS = [
+    { id: "pan", name: "Pan" },
+    { id: "postres", name: "Postres y galletas" },
+    { id: "laminados", name: "Laminados" },
+    { id: "temporada", name: "Temporada" },
+  ];
+  const $ = (s, el = document) => el.querySelector(s);
+  const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+  const money = n => "$" + (Math.round((+n || 0) * 100) / 100).toLocaleString("es-MX", { maximumFractionDigits: 2 });
+  const MONTHS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+  const DAYS = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+
+  // ---------- state ----------
+  const S = {
+    db: null, sample: null,
+    menu: [], orders: [], config: {},
+    cart: {},             // productId -> qty
+    pay: "",              // "", "transferencia", "efectivo"
+    editingId: null,
+    weekOffset: 0,
+    filter: "all",
+    tab: "nuevo",
+    readOnly: false,
+  };
+
+  // ---------- dates ----------
+  const pad = n => String(n).padStart(2, "0");
+  const ymd = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  const parseYmd = s => { const [y, m, d] = String(s || "").split("-").map(Number); return y ? new Date(y, m - 1, d) : null; };
+  const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+  const today = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+  const weekStart = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); const dow = (x.getDay() + 6) % 7; return addDays(x, -dow); };
+  const currentWeek = () => addDays(weekStart(today()), S.weekOffset * 7);
+  const dayLabel = s => { const d = parseYmd(s); if (!d) return "Sin fecha"; return DAYS[d.getDay()] + " " + d.getDate() + " " + MONTHS[d.getMonth()]; };
+  const longDay = s => { const d = parseYmd(s); if (!d) return ""; return DAYS[d.getDay()] + " " + d.getDate() + " de " + ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"][d.getMonth()]; };
+  const weekLabel = ws => { const we = addDays(ws, 6); return ws.getMonth() === we.getMonth() ? `${ws.getDate()} al ${we.getDate()} ${MONTHS[we.getMonth()]}` : `${ws.getDate()} ${MONTHS[ws.getMonth()]} al ${we.getDate()} ${MONTHS[we.getMonth()]}`; };
+  const orderWeek = o => ymd(weekStart(parseYmd(o.deliveryDate) || new Date(o.createdAt || Date.now())));
+
+  // ---------- helpers ----------
+  const norm = s => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9ñ\s]/g, " ").replace(/\s+/g, " ").trim();
+  const menuById = id => S.menu.find(p => p.id === id);
+  const activeMenu = () => S.menu.filter(p => p.active !== false).sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
+  const slug = s => norm(s).replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "").slice(0, 60) || "producto";
+  const orderCode = () => "PN-" + Date.now().toString(36).slice(-4).toUpperCase();
+  const isPaid = o => !!o.paid;
+  const piecesOf = o => (o.items || []).reduce((a, i) => a + (+i.qty || 0), 0);
+  const itemsLine = o => (o.items || []).map(i => `${i.qty} ${i.name}`).join(" · ");
+  const estCost = o => (o.items || []).reduce((a, i) => a + (i.cost == null ? 0 : i.cost * i.qty), 0);
+  const missingCost = o => (o.items || []).some(i => i.cost == null);
+
+  let toastT;
+  function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => (t.hidden = true), 2600); }
+  function setConn(txt, cls) { const c = $("#conn"); c.textContent = txt; c.className = "conn " + (cls || ""); }
+  async function copyText(text, fallbackEl) {
+    try { await navigator.clipboard.writeText(text); toast("Copiado"); }
+    catch { if (fallbackEl) { const r = document.createRange(); r.selectNodeContents(fallbackEl); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } toast("Selecciona el texto y cópialo"); }
+  }
+  function waPhone(p) { let d = String(p || "").replace(/\D/g, ""); if (d.length === 10) d = "52" + d; return d; }
+  function waUrl(phone, text) { const p = waPhone(phone); return "https://wa.me/" + (p || "") + "?text=" + encodeURIComponent(text); }
+  function el(tag, attrs = {}, ...kids) {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v == null || v === false) continue;
+      if (k === "class") e.className = v; else if (k === "text") e.textContent = v;
+      else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v === true ? "" : v);
+    }
+    for (const k of kids.flat()) if (k != null) e.append(k.nodeType ? k : document.createTextNode(k));
+    return e;
+  }
+  async function write(fn, okMsg) {
+    if (!S.db) { toast("Sin conexión a los datos. Recarga la página."); return false; }
+    try { await fn(); if (okMsg) toast(okMsg); return true; }
+    catch (e) {
+      const code = e && e.code;
+      if (code === "invalid_argument") { toast("No tienes permiso para editar. Pide acceso de colaborador."); }
+      else if (code === "quota_exceeded") toast("Se llenó el espacio de datos. Borra pedidos viejos.");
+      else toast("No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.");
+      console.error(e); return false;
+    }
+  }
+
+  // ---------- message ----------
+  function buildMessage(o) {
+    const lines = [];
+    lines.push(`Hola ${o.customer}! Este es tu pedido de Panencia:`);
+    lines.push("");
+    for (const i of o.items) lines.push(`• ${i.qty} × ${i.name} — ${money(i.qty * i.price)}`);
+    if (o.shipping) lines.push(`• Envío — ${money(o.shipping)}`);
+    if (o.discount) lines.push(`• Descuento — −${money(o.discount)}`);
+    lines.push("");
+    lines.push(`Total: ${money(o.total)}`);
+    if (o.deliveryDate) lines.push(`Entrega: ${longDay(o.deliveryDate)}`);
+    if (o.notes) lines.push(`Notas: ${o.notes}`);
+    lines.push(`Pedido ${o.code}`);
+    lines.push("");
+    if (o.paid) lines.push(`Pago recibido (${o.paymentMethod || "registrado"}). ¡Gracias!`);
+    else if ((S.config.paymentNote || "").trim()) lines.push(S.config.paymentNote.trim());
+    else lines.push("Te confirmo en cuanto reciba tu pago. ¡Gracias!");
+    return lines.join("\n");
+  }
+
+  // ---------- form ----------
+  function cartItems() {
+    return Object.entries(S.cart).filter(([, q]) => q > 0).map(([id, qty]) => {
+      const p = menuById(id);
+      const prev = S.editingId && (S.orders.find(o => o.id === S.editingId)?.items || []).find(i => i.id === id);
+      const src = prev || p || { name: id, price: 0, cost: null };
+      return { id, name: (p || src).name, qty, price: +src.price || 0, cost: src.cost == null ? null : +src.cost };
+    });
+  }
+  function formTotals() {
+    const items = cartItems();
+    const subtotal = items.reduce((a, i) => a + i.qty * i.price, 0);
+    const shipping = +$("#shipping").value || 0;
+    const discount = +$("#discount").value || 0;
+    return { items, subtotal, shipping, discount, total: Math.max(0, subtotal + shipping - discount), pieces: items.reduce((a, i) => a + i.qty, 0) };
+  }
+  function renderBar() {
+    const t = formTotals();
+    $("#bar-total").textContent = money(t.total);
+    $("#bar-sub").textContent = `${t.pieces} ${t.pieces === 1 ? "pieza" : "piezas"}` + (t.shipping ? ` · envío ${money(t.shipping)}` : "");
+    $("#orderbar").hidden = !(S.tab === "nuevo" && $("#saved-panel").hidden && (t.pieces > 0 || S.editingId));
+    $("#save-order").textContent = S.editingId ? "Guardar cambios" : "Guardar pedido";
+  }
+  function renderPicker() {
+    const box = $("#picker"); box.textContent = "";
+    const menu = activeMenu();
+    // include products in cart that are no longer active
+    const extra = Object.keys(S.cart).filter(id => S.cart[id] > 0 && !menu.some(p => p.id === id));
+    $("#menu-status").textContent = S.db ? `${menu.length} productos` : "";
+    if (!menu.length && !extra.length) {
+      box.append(el("div", { class: "empty", text: S.db ? "Tu menú está vacío. Agrega productos en la pestaña Menú." : "Cargando menú…" }));
+      return;
+    }
+    for (const c of CATS) {
+      const ps = menu.filter(p => (p.category || "pan") === c.id);
+      if (!ps.length) continue;
+      const sec = el("div", { class: "cat" }, el("h3", { text: c.name }));
+      for (const p of ps) sec.append(prodRow(p));
+      box.append(sec);
+    }
+    for (const id of extra) { const prev = cartItems().find(i => i.id === id); box.append(prodRow({ id, name: prev.name + " (fuera de menú)", price: prev.price })); }
+  }
+  function prodRow(p) {
+    const q = S.cart[p.id] || 0;
+    const out = el("output", { text: String(q) });
+    const row = el("div", { class: "prod" + (q ? " on" : "") },
+      el("div", {}, el("div", { class: "nm", text: p.name }), el("div", { class: "pr num", text: money(p.price) + (p.unit ? " · " + p.unit : "") })),
+      el("div", { class: "stepper" },
+        el("button", { type: "button", class: "minus", "aria-label": "Quitar " + p.name, text: "−", onclick: () => setQty(p.id, q - 1) }),
+        out,
+        el("button", { type: "button", "aria-label": "Agregar " + p.name, text: "+", onclick: () => setQty(p.id, q + 1) })));
+    return row;
+  }
+  function setQty(id, q) { S.cart[id] = Math.max(0, q); if (!S.cart[id]) delete S.cart[id]; renderPicker(); renderBar(); }
+  function setPay(v) { S.pay = v; $$("#pay-chips .chip").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.pay === v))); }
+  function renderDateChips() {
+    const box = $("#date-chips"); box.textContent = "";
+    const t = today(); const cur = $("#delivery-date").value;
+    const opts = [["Hoy", t], ["Mañana", addDays(t, 1)]];
+    for (const dow of [6, 0]) { // next Saturday, Sunday
+      let d = addDays(t, 1); while (d.getDay() !== dow) d = addDays(d, 1);
+      if (!opts.some(([, x]) => ymd(x) === ymd(d))) opts.push([DAYS[dow].replace(/^./, c => c.toUpperCase()) + " " + d.getDate(), d]);
+    }
+    for (const [lbl, d] of opts) box.append(el("button", { type: "button", class: "chip", "aria-pressed": String(ymd(d) === cur), text: lbl, onclick: () => { $("#delivery-date").value = ymd(d); renderDateChips(); } }));
+  }
+  function resetForm() {
+    S.cart = {}; S.editingId = null; setPay("");
+    $("#order-form").reset();
+    $("#delivery-date").value = ymd(addDays(today(), 1));
+    $("#editing-bar").hidden = true;
+    $("#parse-note").hidden = true;
+    renderDateChips(); renderPicker(); renderBar();
+  }
+  function loadIntoForm(o) {
+    S.editingId = o.id; S.cart = {};
+    for (const i of o.items || []) S.cart[i.id] = (S.cart[i.id] || 0) + i.qty;
+    $("#cust-name").value = o.customer || ""; $("#cust-phone").value = o.phone || "";
+    $("#delivery-date").value = o.deliveryDate || ""; $("#shipping").value = o.shipping || ""; $("#discount").value = o.discount || "";
+    $("#notes").value = o.notes || ""; setPay(o.paid ? (o.paymentMethod || "transferencia") : "");
+    $("#editing-bar").hidden = false; $("#editing-label").textContent = "Editando " + o.code;
+    $("#saved-panel").hidden = true; $("#order-form").hidden = false;
+    renderDateChips(); renderPicker(); showTab("nuevo"); scrollTo(0, 0);
+  }
+  async function saveOrder(ev) {
+    ev.preventDefault();
+    const t = formTotals();
+    const customer = $("#cust-name").value.trim();
+    if (!customer) { $("#cust-name").focus(); toast("Escribe el nombre del cliente"); return; }
+    if (!t.items.length) { toast("Agrega al menos un producto"); return; }
+    const prev = S.editingId ? S.orders.find(o => o.id === S.editingId) : null;
+    const now = new Date().toISOString();
+    const o = {
+      code: prev?.code || orderCode(),
+      customer, phone: $("#cust-phone").value.trim(),
+      items: t.items, subtotal: t.subtotal, shipping: t.shipping, discount: t.discount, total: t.total,
+      deliveryDate: $("#delivery-date").value || ymd(today()),
+      notes: $("#notes").value.trim(),
+      paid: !!S.pay, paymentMethod: S.pay || null,
+      paidAt: S.pay ? (prev?.paid ? prev.paidAt : now) : null,
+      delivered: prev?.delivered || false, deliveredAt: prev?.deliveredAt || null,
+      createdAt: prev?.createdAt || now, updatedAt: now,
+      source: prev?.source || "pagina",
+      rawMessage: prev?.rawMessage || ($("#paste-text").value.trim() || null),
+    };
+    const id = S.editingId || (ymd(today()).replace(/-/g, "") + "-" + Math.random().toString(36).slice(2, 8));
+    $("#save-order").disabled = true;
+    const ok = await write(() => S.db.doc("orders/" + id).set(o));
+    $("#save-order").disabled = false;
+    if (!ok) return;
+    showSaved({ id, ...o }, !!prev);
+  }
+  function showSaved(o, wasEdit) {
+    const msg = buildMessage(o);
+    $("#saved-title").textContent = (wasEdit ? "Cambios guardados · " : "Pedido guardado · ") + o.code;
+    const pill = $("#saved-pill"); pill.className = "pill " + (o.paid ? "paid" : "pend"); pill.textContent = o.paid ? "Pagado" : "Por cobrar";
+    $("#saved-msg").textContent = msg;
+    $("#wa-link").href = waUrl(o.phone, msg);
+    $("#wa-note").textContent = o.phone ? "Si el botón de WhatsApp no abre, usa Copiar mensaje y pégalo en el chat." : "Sin número: WhatsApp te pedirá elegir el chat. También puedes copiar el mensaje.";
+    $("#saved-panel").hidden = false; $("#order-form").hidden = true;
+    S.editingId = null; S.cart = {}; renderBar(); scrollTo(0, 0);
+  }
+
+  // ---------- paste parsing ----------
+  const NUMWORDS = { un: 1, una: 1, uno: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10, once: 11, doce: 12, docena: 12, media: 6 };
+  const STOP = new Set(["de","del","la","el","los","las","y","con","para","por","me","mi","un","una","uno","porfa","favor","hola","quiero","quisiera","apartas","aparta","pedir","pido","dame","tienes","hay","pz","pza","pzas","piezas","pieza","que","se","lo","al","en","a"]);
+  const stem = w => w.length > 4 ? w.replace(/(es|s)$/, "") : w;
+  const DATEWORDS = new Set(["hoy","manana","pasado","sabado","domingo","lunes","martes","miercoles","jueves","viernes","entrega","recoger","recojo","semana","gracias","porfavor"].map(w => stem(w)));
+  function tokens(s) { return norm(s).split(" ").filter(w => w && !STOP.has(w)).map(stem); }
+  function productKeys(p) { return [p.name, ...(p.aliases || [])].map(tokens); }
+  function parseLocal(text) {
+    const menu = activeMenu();
+    const found = {}; const unknown = [];
+    const chunks = String(text).split(/[\n,;+]/).map(c => norm(c).replace(/\bajo y parm/g, "ajo parm"))
+      .flatMap(c => c.split(/\s(?:y|e|mas|tambien)\s/)).map(c => c.trim()).filter(Boolean);
+    for (const ch of chunks) {
+      let qty = 1; const m = ch.match(/(\d+)/);
+      if (m) qty = +m[1];
+      else { if (/media docena/.test(ch)) qty = 6; else for (const w of ch.split(" ")) if (NUMWORDS[w] && w !== "media") { qty = NUMWORDS[w]; break; } }
+      const tk = tokens(ch.replace(/\d+/g, " "));
+      if (!tk.length) continue;
+      let best = null, bestScore = 0;
+      for (const p of menu) {
+        for (const key of productKeys(p)) {
+          const hit = key.filter(k => tk.includes(k)).length;
+          if (!hit) continue;
+          const score = hit / key.length + hit * 0.01;
+          if (score > bestScore) { bestScore = score; best = p; }
+        }
+      }
+      if (best && bestScore >= 0.34) found[best.id] = (found[best.id] || 0) + qty;
+      else if (tk.some(w => w.length > 3 && !DATEWORDS.has(w))) unknown.push(ch);
+    }
+    // delivery day
+    let date = null; const t = norm(text); const base = today();
+    if (/\bpasado manana\b/.test(t)) date = addDays(base, 2);
+    else if (/\bmanana\b/.test(t)) date = addDays(base, 1);
+    else if (/\bhoy\b/.test(t)) date = base;
+    else { DAYS.forEach((d, i) => { if (!date && new RegExp("\\b" + norm(d) + "\\b").test(t)) { let x = addDays(base, 1); while (x.getDay() !== i) x = addDays(x, 1); date = x; } }); }
+    return { items: found, date: date && ymd(date), unknown };
+  }
+  function applyParsed(items, date, note) {
+    S.cart = {};
+    for (const [id, q] of Object.entries(items)) if (menuById(id) && q > 0) S.cart[id] = q;
+    if (date) $("#delivery-date").value = date;
+    renderDateChips(); renderPicker(); renderBar();
+    const n = $("#parse-note"); n.hidden = false; n.textContent = note;
+  }
+  function onParseLocal() {
+    const txt = $("#paste-text").value; if (!txt.trim()) { toast("Pega primero el mensaje"); return; }
+    const r = parseLocal(txt);
+    const count = Object.keys(r.items).length;
+    let note = count ? `Encontré ${count} ${count === 1 ? "producto" : "productos"}. Revisa cantidades abajo.` : "No reconocí productos del menú. Agrégalos a mano.";
+    if (r.unknown.length) note += ` No reconocí: “${r.unknown.join("”, “")}”.`;
+    if (r.date) note += ` Entrega: ${dayLabel(r.date)}.`;
+    applyParsed(r.items, r.date, note);
+  }
+  async function onParseClaude() {
+    const txt = $("#paste-text").value; if (!txt.trim()) { toast("Pega primero el mensaje"); return; }
+    const btn = $("#parse-claude"); btn.disabled = true; const n = $("#parse-note"); n.hidden = false; n.textContent = "Leyendo el mensaje…";
+    const menu = activeMenu().map(p => ({ id: p.id, name: p.name, price: p.price, unit: p.unit || "" }));
+    const prompt = `Eres el asistente de una panadería de masa madre en México (Panencia). Convierte el mensaje de un cliente en un pedido usando SOLO productos del menú.
+Hoy es ${longDay(ymd(today()))} (${ymd(today())}).
+Menú (JSON): ${JSON.stringify(menu)}
+Mensaje del cliente:
+"""${txt.slice(0, 4000)}"""
+Responde solo con JSON de esta forma: {"items":[{"id":"<id del menú>","qty":<entero>}],"deliveryDate":"YYYY-MM-DD o null","customerName":"nombre si lo dice o null","notes":"instrucciones especiales o null","unmatched":["cosas pedidas que no están en el menú"]}`;
+    try {
+      const r = await S.sample.json(prompt, { modelTier: "quick" });
+      const items = {}; for (const it of (r && r.items) || []) if (menuById(it.id) && +it.qty > 0) items[it.id] = (items[it.id] || 0) + Math.round(+it.qty);
+      const date = r && /^\d{4}-\d{2}-\d{2}$/.test(r.deliveryDate || "") ? r.deliveryDate : null;
+      if (r && r.customerName && !$("#cust-name").value.trim()) $("#cust-name").value = r.customerName;
+      if (r && r.notes && !$("#notes").value.trim()) $("#notes").value = r.notes;
+      const count = Object.keys(items).length;
+      let note = count ? `Claude encontró ${count} ${count === 1 ? "producto" : "productos"}. Revisa antes de guardar.` : "Claude no encontró productos del menú en el mensaje.";
+      if (r && r.unmatched && r.unmatched.length) note += ` Fuera del menú: ${r.unmatched.join(", ")}.`;
+      applyParsed(items, date, note);
+    } catch (e) {
+      if (e && e.code === "not_granted") { btn.hidden = true; n.textContent = "Sin permiso para usar Claude aquí. Usa Convertir en pedido."; }
+      else if (e && e.code === "rate_limited") n.textContent = "Demasiadas consultas seguidas. Espera un momento.";
+      else n.textContent = "No se pudo leer con Claude. Usa Convertir en pedido.";
+    } finally { btn.disabled = false; }
+  }
+
+  // ---------- orders view ----------
+  function weekOrders(ws) { const key = ymd(ws); return S.orders.filter(o => orderWeek(o) === key); }
+  function renderWeekNav() {
+    const ws = currentWeek();
+    $$(".week-label").forEach(e => e.textContent = S.weekOffset === 0 ? "Esta semana" : S.weekOffset === -1 ? "Semana pasada" : S.weekOffset === 1 ? "Próxima semana" : "Semana del " + weekLabel(ws));
+    $$(".week-sub").forEach(e => e.textContent = weekLabel(ws));
+  }
+  function renderOrders() {
+    renderWeekNav();
+    const box = $("#order-list"); box.textContent = "";
+    let list = S.filter === "allpend" ? S.orders.filter(o => !isPaid(o)) : weekOrders(currentWeek());
+    if (S.filter === "pend") list = list.filter(o => !isPaid(o));
+    if (S.filter === "undelivered") list = list.filter(o => !o.delivered);
+    list.sort((a, b) => (a.deliveryDate || "").localeCompare(b.deliveryDate || "") || (a.createdAt || "").localeCompare(b.createdAt || ""));
+    $$(".weeknav", $("#view-pedidos")).forEach(n => n.style.visibility = S.filter === "allpend" ? "hidden" : "");
+    if (!list.length) {
+      box.append(el("div", { class: "empty", text: !S.db ? "Conectando con tus datos…" : S.filter === "allpend" ? "Nadie te debe nada." : "No hay pedidos con entrega en esta semana." }));
+      return;
+    }
+    if (S.filter === "allpend") { const sum = list.reduce((a, o) => a + (+o.total || 0), 0); box.append(el("div", { class: "dayhead", text: `${list.length} pedidos · ${money(sum)} por cobrar` })); }
+    let lastDay = null;
+    for (const o of list) {
+      if (o.deliveryDate !== lastDay) { lastDay = o.deliveryDate; box.append(el("div", { class: "dayhead", text: dayLabel(o.deliveryDate).replace(/^./, c => c.toUpperCase()) })); }
+      box.append(orderCard(o));
+    }
+  }
+  function orderCard(o) {
+    const card = el("article", { class: "order" + (isPaid(o) ? "" : " pend") });
+    const pills = el("div", { class: "row", style: "gap:6px" },
+      el("span", { class: "pill " + (isPaid(o) ? "paid" : "pend"), text: isPaid(o) ? "Pagado" + (o.paymentMethod ? " · " + o.paymentMethod : "") : "Por cobrar" }),
+      o.delivered ? el("span", { class: "pill done", text: "Entregado" }) : null,
+      el("span", { class: "small muted num", text: o.code }));
+    const acts = el("div", { class: "acts" });
+    const conf = el("div", { class: "inline-confirm", hidden: true });
+    const ask = (label, buttons) => { conf.textContent = ""; conf.append(el("span", { class: "small", text: label }), ...buttons, el("button", { type: "button", class: "btn sm ghost", text: "Cancelar", onclick: () => (conf.hidden = true) })); conf.hidden = false; };
+    const upd = (patch, msg) => write(() => S.db.doc("orders/" + o.id).update({ ...patch, updatedAt: new Date().toISOString() }), msg);
+    if (!isPaid(o)) acts.append(el("button", { type: "button", class: "btn sm primary", text: "Cobrado", onclick: () => ask("¿Cómo te pagó?", [
+      el("button", { type: "button", class: "btn sm", text: "Transferencia", onclick: () => upd({ paid: true, paymentMethod: "transferencia", paidAt: new Date().toISOString() }, "Marcado como pagado") }),
+      el("button", { type: "button", class: "btn sm", text: "Efectivo", onclick: () => upd({ paid: true, paymentMethod: "efectivo", paidAt: new Date().toISOString() }, "Marcado como pagado") })]) }));
+    if (!o.delivered) acts.append(el("button", { type: "button", class: "btn sm", text: "Entregado", onclick: () => upd({ delivered: true, deliveredAt: new Date().toISOString() }, "Marcado como entregado") }));
+    const msgBox = el("div", { class: "ticket", hidden: true });
+    acts.append(el("button", { type: "button", class: "btn sm", text: "Mensaje", onclick: () => {
+      const msg = buildMessage(o); msgBox.textContent = msg; msgBox.hidden = !msgBox.hidden;
+      if (!msgBox.hidden) copyText(msg, msgBox);
+    } }));
+    acts.append(el("a", { class: "btn sm", href: waUrl(o.phone, buildMessage(o)), target: "_blank", rel: "noopener", style: "text-decoration:none;display:inline-flex;align-items:center", text: "WhatsApp" }));
+    acts.append(el("button", { type: "button", class: "btn sm ghost", text: "Editar", onclick: () => loadIntoForm(o) }));
+    const more = [];
+    if (isPaid(o)) more.push(el("button", { type: "button", class: "btn sm ghost", text: "Quitar pago", onclick: () => ask("¿Regresar a por cobrar?", [el("button", { type: "button", class: "btn sm", text: "Sí", onclick: () => upd({ paid: false, paymentMethod: null, paidAt: null }, "Regresado a por cobrar") })]) }));
+    if (o.delivered) more.push(el("button", { type: "button", class: "btn sm ghost", text: "No entregado", onclick: () => upd({ delivered: false, deliveredAt: null }) }));
+    more.push(el("button", { type: "button", class: "btn sm ghost danger", text: "Borrar", onclick: () => ask("¿Borrar este pedido para siempre?", [el("button", { type: "button", class: "btn sm danger", text: "Borrar", onclick: () => write(() => S.db.doc("orders/" + o.id).delete(), "Pedido borrado") })]) }));
+    acts.append(...more);
+    card.append(
+      el("div", { class: "hd" }, el("span", { class: "who", text: o.customer || "Sin nombre" }), el("span", { class: "amt", text: money(o.total) })),
+      el("div", { class: "items", text: itemsLine(o) + (o.shipping ? ` · envío ${money(o.shipping)}` : "") + (o.discount ? ` · desc. ${money(o.discount)}` : "") }),
+      o.notes ? el("div", { class: "small", text: "Nota: " + o.notes }) : null,
+      pills, acts, conf, msgBox);
+    return card;
+  }
+
+  // ---------- week view ----------
+  function renderWeek() {
+    renderWeekNav();
+    const ws = currentWeek(); const list = weekOrders(ws);
+    const total = list.reduce((a, o) => a + (+o.total || 0), 0);
+    const paid = list.filter(isPaid).reduce((a, o) => a + (+o.total || 0), 0);
+    const cost = list.reduce((a, o) => a + estCost(o), 0);
+    const itemsRev = list.reduce((a, o) => a + (+o.subtotal || 0) - (+o.discount || 0), 0);
+    const noCost = list.some(missingCost);
+    const st = $("#stats"); st.textContent = "";
+    const stat = (lbl, v, sub, hl) => el("div", { class: "stat" + (hl ? " hl" : "") }, el("div", { class: "label", text: lbl }), el("div", { class: "v", text: v }), sub ? el("div", { class: "small muted", text: sub }) : null);
+    st.append(
+      stat("Vendido", money(total), `${list.length} pedidos`, true),
+      stat("Cobrado", money(paid), `${list.filter(isPaid).length} pagados`),
+      stat("Por cobrar", money(total - paid), `${list.filter(o => !isPaid(o)).length} pendientes`),
+      stat("Ganancia est.", money(itemsRev - cost), noCost ? "hay productos sin costo" : "precio − costo del menú"));
+    // bake list
+    const days = [...new Set(list.map(o => o.deliveryDate))].sort();
+    const prods = {};
+    for (const o of list) for (const i of o.items || []) { const k = i.id; prods[k] ??= { name: i.name, total: 0, byDay: {} }; prods[k].total += i.qty; prods[k].byDay[o.deliveryDate] = (prods[k].byDay[o.deliveryDate] || 0) + i.qty; }
+    const bake = $("#bake"); bake.textContent = "";
+    const rows = Object.values(prods).sort((a, b) => b.total - a.total);
+    if (!rows.length) bake.append(el("div", { class: "empty", text: "Sin pedidos esta semana." }));
+    else {
+      const short = s => { const d = parseYmd(s); return d ? DAYS[d.getDay()].slice(0, 3) + " " + d.getDate() : "—"; };
+      bake.append(el("table", { class: "bake" },
+        el("thead", {}, el("tr", {}, el("th", { text: "Producto" }), ...days.map(d => el("th", { text: short(d) })), el("th", { text: "Total" }))),
+        el("tbody", {}, ...rows.map(r => el("tr", {}, el("td", { text: r.name }), ...days.map(d => el("td", { text: r.byDay[d] ? String(r.byDay[d]) : "·" })), el("td", { text: String(r.total) })))),
+        el("tfoot", {}, el("tr", {}, el("td", { text: "Piezas" }), ...days.map(d => el("td", { text: String(rows.reduce((a, r) => a + (r.byDay[d] || 0), 0)) })), el("td", { text: String(rows.reduce((a, r) => a + r.total, 0)) })))));
+    }
+    // owed
+    const owed = $("#owed"); owed.textContent = "";
+    const pend = list.filter(o => !isPaid(o));
+    if (!pend.length) owed.append(el("div", { class: "muted small", text: list.length ? "Todo cobrado." : "—" }));
+    for (const o of pend) owed.append(el("div", { class: "row", style: "justify-content:space-between;border-top:1px solid var(--line);padding-top:8px" },
+      el("span", {}, el("b", { text: o.customer }), el("span", { class: "small muted", text: " · " + dayLabel(o.deliveryDate) })), el("span", { class: "num", text: money(o.total) })));
+    // history
+    const hist = $("#history"); hist.textContent = "";
+    const base = weekStart(today()); const hrows = [];
+    for (let i = 0; i < 8; i++) {
+      const w = addDays(base, -7 * i); const l = weekOrders(w);
+      const t = l.reduce((a, o) => a + (+o.total || 0), 0); const p = l.filter(isPaid).reduce((a, o) => a + (+o.total || 0), 0);
+      hrows.push(el("tr", {}, el("td", { text: weekLabel(w) }), el("td", { text: String(l.length) }), el("td", { text: money(t) }), el("td", { text: money(p) })));
+    }
+    hist.append(el("table", { class: "bake" }, el("thead", {}, el("tr", {}, el("th", { text: "Semana" }), el("th", { text: "Pedidos" }), el("th", { text: "Vendido" }), el("th", { text: "Cobrado" }))), el("tbody", {}, ...hrows)));
+  }
+
+  // ---------- menu editor ----------
+  function renderMenuEditor() {
+    const box = $("#menu-editor"); box.textContent = "";
+    const all = [...S.menu].sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
+    if (!all.length) { box.append(el("div", { class: "empty", text: S.db ? "Sin productos todavía." : "Cargando menú…" })); return; }
+    for (const p of all) {
+      const save = (field, parse) => ev => {
+        const v = parse(ev.target.value);
+        if (v === p[field] || (Number.isNaN(v))) return;
+        write(() => S.db.doc("menu/" + p.id).update({ [field]: v }), "Guardado");
+      };
+      const margin = p.cost != null && p.price ? (p.price - p.cost) / p.price : null;
+      const cat = el("select", { id: "cat-" + p.id, onchange: save("category", x => x) }, ...CATS.map(c => el("option", { value: c.id, text: c.name, selected: (p.category || "pan") === c.id })));
+      box.append(el("div", { class: "mitem" },
+        el("div", { class: "field" }, el("label", { for: "nm-" + p.id, text: "Nombre" }), el("input", { type: "text", id: "nm-" + p.id, value: p.name, onchange: save("name", x => x.trim()) })),
+        el("div", { class: "field" }, el("label", { for: "pr-" + p.id, text: "Precio" }), el("input", { type: "number", id: "pr-" + p.id, min: "0", step: "1", value: p.price ?? "", onchange: save("price", x => (x === "" ? 0 : +x)) })),
+        el("div", { class: "field" }, el("label", { for: "co-" + p.id, text: "Costo" }), el("input", { type: "number", id: "co-" + p.id, min: "0", step: "0.01", value: p.cost ?? "", placeholder: "—", onchange: save("cost", x => (x === "" ? null : +x)) })),
+        el("div", { class: "field full" }, el("label", { for: "al-" + p.id, text: "Otras formas en que te lo piden (separadas por coma)" }), el("input", { type: "text", id: "al-" + p.id, value: (p.aliases || []).join(", "), onchange: ev => { const v = ev.target.value.split(",").map(s => s.trim()).filter(Boolean); write(() => S.db.doc("menu/" + p.id).update({ aliases: v }), "Guardado"); } })),
+        el("div", { class: "flags" },
+          el("label", { class: "row", style: "gap:6px" }, el("input", { type: "checkbox", id: "ac-" + p.id, checked: p.active !== false, onchange: ev => write(() => S.db.doc("menu/" + p.id).update({ active: ev.target.checked }), ev.target.checked ? "Visible en pedidos" : "Oculto de pedidos") }), "En venta"),
+          cat,
+          margin == null ? el("span", { class: "margin muted", text: "Sin costo" }) : el("span", { class: "margin " + (margin < 0.3 ? "low" : "ok"), text: `Margen ${Math.round(margin * 100)}% · ${money(p.price - p.cost)} por venta` }))));
+    }
+    const sel = $("#new-cat"); if (!sel.options.length) CATS.forEach(c => sel.append(el("option", { value: c.id, text: c.name })));
+    if (document.activeElement !== $("#pay-note")) $("#pay-note").value = S.config.paymentNote || "";
+  }
+  async function addProduct() {
+    const name = $("#new-name").value.trim(); const price = +$("#new-price").value;
+    if (!name || !price) { toast("Escribe nombre y precio"); return; }
+    let id = slug(name); while (menuById(id)) id += "-2";
+    const costV = $("#new-cost").value;
+    const ok = await write(() => S.db.doc("menu/" + id).set({ name, price, cost: costV === "" ? null : +costV, category: $("#new-cat").value, active: true, aliases: [], order: (Math.max(0, ...S.menu.map(p => p.order || 0)) + 1) }), "Producto agregado");
+    if (ok) { $("#new-name").value = ""; $("#new-price").value = ""; $("#new-cost").value = ""; }
+  }
+
+  // ---------- tabs & global render ----------
+  function showTab(t) {
+    S.tab = t;
+    $$("[data-view]").forEach(v => (v.hidden = v.dataset.view !== t));
+    $$(".tabbar [data-tab]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === t)));
+    try { localStorage.setItem("panencia.tab", t); } catch {}
+    renderAll();
+  }
+  function renderCustomers() {
+    const seen = new Map();
+    for (const o of [...S.orders].sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))) if (o.customer && !seen.has(o.customer)) seen.set(o.customer, o.phone || "");
+    const dl = $("#cust-list"); dl.textContent = "";
+    for (const n of seen.keys()) dl.append(el("option", { value: n }));
+    S.phones = seen;
+  }
+  function renderBadge() { const n = S.orders.filter(o => !isPaid(o)).length; const b = $("#pend-badge"); b.hidden = !n; b.textContent = n; }
+  function renderAll() {
+    renderBadge(); renderBar();
+    if (S.tab === "nuevo") renderPicker();
+    if (S.tab === "pedidos") renderOrders();
+    if (S.tab === "semana") renderWeek();
+    if (S.tab === "menu") renderMenuEditor();
+  }
+
+  // ---------- events ----------
+  $$(".tabbar [data-tab]").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
+  $$("[data-week]").forEach(b => b.addEventListener("click", () => { S.weekOffset += +b.dataset.week; renderAll(); }));
+  $$("#order-filter .chip").forEach(b => b.addEventListener("click", () => { S.filter = b.dataset.filter; $$("#order-filter .chip").forEach(x => x.setAttribute("aria-pressed", String(x === b))); renderOrders(); }));
+  $$("#pay-chips .chip").forEach(b => b.addEventListener("click", () => setPay(b.dataset.pay)));
+  $("#order-form").addEventListener("submit", saveOrder);
+  $("#shipping").addEventListener("input", renderBar);
+  $("#discount").addEventListener("input", renderBar);
+  $("#delivery-date").addEventListener("change", renderDateChips);
+  $("#cust-name").addEventListener("change", () => { const ph = S.phones && S.phones.get($("#cust-name").value.trim()); if (ph && !$("#cust-phone").value) $("#cust-phone").value = ph; });
+  $("#parse-local").addEventListener("click", onParseLocal);
+  $("#parse-claude").addEventListener("click", onParseClaude);
+  $("#copy-msg").addEventListener("click", () => copyText($("#saved-msg").textContent, $("#saved-msg")));
+  $("#new-order").addEventListener("click", () => { $("#saved-panel").hidden = true; $("#order-form").hidden = false; resetForm(); });
+  $("#cancel-edit").addEventListener("click", resetForm);
+  $("#add-prod").addEventListener("click", addProduct);
+  $("#pay-note").addEventListener("change", ev => write(() => S.db.doc("config/app").set({ ...S.config, paymentNote: ev.target.value.trim() }), "Mensaje de pago guardado"));
+
+
+  // ---------- local mode (page opened outside Claude: data stays in this browser) ----------
+  const LOCAL_SEED = {"menu": {"hogaza-natural": {"name": "Hogaza Natural", "category": "pan", "price": 85, "cost": 21.36, "order": 1, "active": true, "aliases": ["hogaza sola", "hogaza clasica", "hogaza normal"]}, "hogaza-hierbas": {"name": "Hogaza Hierbas", "category": "pan", "price": 95, "cost": 27.36, "order": 2, "active": true, "aliases": ["hogaza de hierbas", "hogaza hierbas italianas", "hierbas finas"]}, "hogaza-ajo-parm": {"name": "Hogaza Ajo y Parmesano", "category": "pan", "price": 145, "cost": 53.47, "order": 3, "active": true, "aliases": ["hogaza ajo parm", "hogaza de ajo", "hogaza parmesano"]}, "molde-honey": {"name": "Pan de Molde", "category": "pan", "price": 90, "cost": 27.59, "order": 4, "active": true, "aliases": ["pan de caja", "pan molde miel", "honey"]}, "molde-ajo-parm": {"name": "Pan de Molde Ajo y Parmesano", "category": "pan", "price": 95, "cost": 95.84, "order": 5, "active": true, "aliases": ["pan de caja ajo", "molde ajo parm"]}, "molde-hierbas": {"name": "Pan de Molde Hierbas", "category": "pan", "price": 95, "cost": 64.03, "order": 6, "active": true, "aliases": ["pan de caja hierbas", "molde hierbas italianas"]}, "apple-pie": {"name": "Apple Pie", "category": "postres", "price": 300, "cost": 141.74, "order": 10, "active": true, "aliases": ["pay de manzana", "pie de manzana", "pay manzana"]}, "galleta-chocochips": {"name": "Galleta Chocochips", "category": "postres", "price": 55, "cost": 34.42, "order": 11, "active": true, "aliases": ["galleta chocochip", "galleta chispas", "galleta de chocolate"]}, "galleta-brownie": {"name": "Galleta Brownie", "category": "postres", "price": 55, "cost": 33.93, "order": 12, "active": true, "aliases": ["chocobrownie", "galleta chocobrownie"]}, "galleta-limon": {"name": "Galleta Pay de Limón", "category": "postres", "price": 55, "cost": 30.66, "order": 13, "active": true, "aliases": ["galleta limon", "galleta de limon"]}, "croissant-4": {"name": "Croissant (4 pz)", "category": "laminados", "price": 150, "cost": 67.75, "order": 20, "active": true, "aliases": ["croissant", "cruasan"], "unit": "caja de 4"}, "chocolatin-4": {"name": "Chocolatín (4 pz)", "category": "laminados", "price": 180, "cost": 74.05, "order": 21, "active": true, "aliases": ["chocolatin", "pain au chocolat"], "unit": "caja de 4"}, "pan-muerto-charola-8": {"name": "Pan de Muerto charola (8 ch)", "category": "temporada", "price": 300, "cost": null, "order": 30, "active": true, "aliases": ["charola pan de muerto", "pan de muerto chico", "pan de muerto charola"], "unit": "8 chicos"}, "pan-muerto-grande": {"name": "Pan de Muerto grande", "category": "temporada", "price": 55, "cost": null, "order": 31, "active": true, "aliases": ["pan de muerto grande", "pan de muerto"]}}, "config": {"paymentNote": ""}};
+  function localDB() {
+    const KEY = "panencia.datos.v1";
+    let data = {};
+    try { data = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch {}
+    if (!Object.keys(data).some(k => k.startsWith("menu/"))) {
+      for (const [id, d] of Object.entries(LOCAL_SEED.menu)) data["menu/" + id] = d;
+      data["config/app"] = LOCAL_SEED.config;
+    }
+    const listeners = new Set();
+    const clone = x => JSON.parse(JSON.stringify(x));
+    const save = () => { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch {} listeners.forEach(fn => fn()); };
+    const snap = path => ({ id: path.split("/").pop(), exists: path in data, data: () => data[path] });
+    const watch = fn => { listeners.add(fn); fn(); return () => listeners.delete(fn); };
+    return {
+      doc: path => ({
+        set: async d => { data[path] = clone(d); save(); },
+        update: async d => { if (!(path in data)) throw { code: "invalid_argument" }; data[path] = { ...data[path], ...clone(d) }; save(); },
+        delete: async () => { delete data[path]; save(); },
+        onSnapshot: next => watch(() => next(snap(path))),
+      }),
+      collection: name => {
+        const q = { orderBy: () => q, limit: () => q,
+          onSnapshot: next => watch(() => next({ docs: Object.keys(data).filter(k => k.startsWith(name + "/") && k.split("/").length === 2).map(snap) })) };
+        return q;
+      },
+    };
+  }
+
+  // ---------- boot ----------
+  resetForm();
+  try { const t = localStorage.getItem("panencia.tab"); if (t && t !== "nuevo" && $(`[data-view="${t}"]`)) showTab(t); } catch {}
+  const onErr = e => { if (e && e.code === "revoked") setConn("Sin acceso", "bad"); else setConn("Sin conexión", "bad"); };
+
+  (async () => {
+    const c = window.claude;
+    const local = !c || !c.use;
+    const db = local ? localDB() : await c.use("db");
+    if (!db) { setConn("Sin datos", "bad"); $("#menu-status").textContent = ""; renderAll(); return; }
+    S.db = db; setConn(local ? "En este navegador" : "Sincronizado", "ok");
+    db.collection("menu").onSnapshot(snap => { S.menu = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderAll(); }, onErr);
+    db.collection("orders").orderBy("deliveryDate", "desc").limit(1000).onSnapshot(snap => { S.orders = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderCustomers(); renderAll(); }, onErr);
+    db.doc("config/app").onSnapshot(snap => { S.config = snap.exists ? { ...snap.data() } : {}; if (S.tab === "menu") renderMenuEditor(); }, onErr);
+  })();
+  (async () => {
+    const c = window.claude; if (!c || !c.use) return;
+    const sample = await c.use("sample");
+    if (sample) { S.sample = sample; $("#parse-claude").hidden = false; }
+  })();
+})();
+</script>
+
+</body>
+</html>
